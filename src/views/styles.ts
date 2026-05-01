@@ -37,14 +37,28 @@ export function getStyles(): string {
     }
 
     .section h2 {
-      font-size: 0.8em;
+      font-size: 1.15em;
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--vscode-descriptionForeground);
+      color: var(--vscode-foreground);
       margin-bottom: var(--gap);
       border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
       padding-bottom: 4px;
+    }
+
+    .section h3 {
+      font-size: 0.85em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--vscode-descriptionForeground);
+      margin: 14px 0 6px;
+    }
+
+    .section h4 {
+      font-size: 0.9em;
+      font-weight: 600;
+      color: var(--vscode-foreground);
+      margin: 10px 0 4px;
     }
 
     .divider {
@@ -82,8 +96,21 @@ export function getStyles(): string {
     table.lift-table tr.row-baseline { background: transparent; }
 
     table.lift-table tr.expandable { cursor: pointer; }
+    table.lift-table tr.expandable .expand-arrow {
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+    table.lift-table tr.expandable:hover .expand-arrow,
+    table.lift-table tr.expandable.expanded .expand-arrow {
+      opacity: 1;
+    }
     table.lift-table tr.expandable:hover {
       background: var(--vscode-list-hoverBackground);
+    }
+
+    /* Remove bottom border when expanded so header + detail feel joined */
+    table.lift-table tr.expandable.expanded td {
+      border-bottom: none;
     }
 
     .expand-arrow {
@@ -104,40 +131,158 @@ export function getStyles(): string {
     }
 
     .expanded-row td {
-      padding: 8px 10px 12px 28px;
-      background: var(--vscode-editor-background);
+      padding: 10px 10px 14px 28px;
       border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      border-left: 3px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      background: rgba(127,127,127,0.03);
     }
 
     .expanded-content {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 6px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     .expanded-content .metric {
-      font-size: 0.9em;
+      font-size: 0.85em;
+      background: var(--vscode-editor-background);
+      border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      border-radius: var(--radius);
+      padding: 6px 12px;
+      min-width: 80px;
     }
 
     .expanded-content .metric-label {
       color: var(--vscode-descriptionForeground);
-      font-size: 0.85em;
+      font-size: 0.8em;
+      display: block;
+      margin-bottom: 2px;
     }
 
     .expanded-content .metric-value {
       font-weight: 600;
+      font-size: 1.05em;
     }
 
-    /* Criteria breakdown in expanded row */
+    /* Criteria breakdown — grouped list */
+    .criteria-list {
+      margin-top: 12px;
+    }
+
+    .criteria-list-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 0 0 4px;
+      margin-bottom: 6px;
+      font-size: 0.8em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--vscode-descriptionForeground);
+      border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+    }
+
+    .criteria-list-header span:first-child {
+      flex: 0 0 140px;
+    }
+
+    .criteria-list-header span:nth-child(2) {
+      flex: 1;
+    }
+
+    .criteria-list-header span:last-child {
+      flex: 0 0 60px;
+      text-align: right;
+    }
+
+    .criteria-group {
+      margin-bottom: 2px;
+    }
+
+    .criteria-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .criteria-row {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(127,127,127,0.1);
+    }
+
+    .criteria-row:last-child {
+      border-bottom: none;
+    }
+
+    .criteria-row.criteria-expandable {
+      cursor: pointer;
+    }
+
+    .criteria-row.criteria-expandable:hover {
+      background: var(--vscode-list-hoverBackground);
+    }
+
+    .criteria-caret {
+      font-size: 0.7em;
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+      flex-shrink: 0;
+    }
+
+    .criteria-expandable:hover .criteria-caret,
+    .criteria-expandable.expanded .criteria-caret {
+      opacity: 1;
+    }
+
+    .criteria-group-label {
+      font-weight: 600;
+      font-size: 0.85em;
+      color: var(--vscode-foreground);
+      margin-bottom: 4px;
+      flex: 0 0 140px;
+    }
+
+    .criteria-item {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 3px 0;
+      font-size: 0.9em;
+      flex: 1;
+    }
+
+    .criteria-desc {
+      flex: 1;
+      color: var(--vscode-foreground);
+    }
+
+    .criteria-rate {
+      flex: 0 0 60px;
+      text-align: right;
+    }
+
+    .annotation {
+      color: var(--vscode-errorForeground);
+      font-size: 0.9em;
+      margin-left: 4px;
+    }
+
+    /* Criteria/results tables (evidence & runs sections) */
     .criteria-table {
       width: 100%;
-      margin-top: 10px;
+      margin-top: 8px;
       border-collapse: collapse;
     }
 
     .criteria-table th {
       text-align: left;
       padding: 4px 8px;
+      font-size: 0.85em;
       color: var(--vscode-descriptionForeground);
       border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
     }
@@ -147,30 +292,46 @@ export function getStyles(): string {
       border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
     }
 
-    .criteria-table .annotation {
-      color: var(--vscode-errorForeground);
-      font-size: 0.9em;
-      margin-left: 4px;
+    /* Action Rows */
+    .action-row {
+      border-bottom: 1px solid rgba(127,127,127,0.1);
     }
 
-    /* Action Cards */
-    .action-card {
-      border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-      border-radius: var(--radius);
-      padding: 10px 14px;
-      margin-bottom: 8px;
+    .action-row:last-child {
+      border-bottom: none;
+    }
+
+    .action-row-header {
+      padding: 8px 0;
       cursor: pointer;
     }
 
-    .action-card:hover {
+    .action-row-header:hover {
       background: var(--vscode-list-hoverBackground);
     }
 
-    .action-card-header {
+    .action-row-top {
       display: flex;
-      align-items: center;
+      align-items: baseline;
       gap: 8px;
+    }
+
+    .action-tags {
+      display: flex;
+      gap: 4px;
       flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-top: 4px;
+    }
+
+    .action-caret {
+      opacity: 0;
+      transition: opacity 0.15s, transform 0.15s;
+    }
+
+    .action-row-header:hover .action-caret,
+    .action-row.open .action-caret {
+      opacity: 1;
     }
 
     .priority-badge {
@@ -178,6 +339,7 @@ export function getStyles(): string {
       font-size: 0.8em;
       border-radius: 3px;
       padding: 1px 6px;
+      flex-shrink: 0;
     }
 
     .priority-p1 { color: var(--vscode-errorForeground); }
@@ -185,13 +347,13 @@ export function getStyles(): string {
     .priority-p3 { color: var(--vscode-descriptionForeground); }
 
     .action-label {
-      font-weight: 600;
       flex: 1;
     }
 
     .action-meta {
-      font-size: 0.9em;
+      font-size: 0.85em;
       color: var(--vscode-descriptionForeground);
+      flex-shrink: 0;
     }
 
     .badge {
@@ -204,14 +366,19 @@ export function getStyles(): string {
 
     .action-detail {
       display: none;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      padding: 4px 0 12px 28px;
+      border-left: 3px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      margin-left: 0;
       line-height: 1.6;
+      background: rgba(127,127,127,0.03);
     }
 
-    .action-card.open .action-detail {
+    .action-row.open .action-detail {
       display: block;
+    }
+
+    .action-detail p {
+      margin-bottom: 8px;
     }
 
     .evidence-excerpt {
@@ -229,15 +396,6 @@ export function getStyles(): string {
 
     .trajectory-link:hover {
       color: var(--vscode-textLink-activeForeground);
-    }
-
-    .section-group-header {
-      font-size: 0.8em;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-      color: var(--vscode-descriptionForeground);
-      margin: 14px 0 6px;
     }
 
     /* Evidence section */
@@ -265,67 +423,65 @@ export function getStyles(): string {
       transform: rotate(90deg);
     }
 
-    /* Rate links and evidence panels */
-    .rate-link {
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      text-decoration: underline;
-    }
-
-    .rate-link:hover {
-      color: var(--vscode-textLink-activeForeground);
-    }
-
+    /* Evidence panels */
     .evidence-panel {
       display: none;
-      margin-top: 6px;
-      padding: 8px 12px;
-      border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-      border-radius: var(--radius);
-      background: var(--vscode-editor-background);
+      padding: 8px 0 8px 12px;
+      border-left: 3px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      margin: 4px 0 8px 140px;
     }
 
     .evidence-panel.visible {
       display: block;
     }
 
-    .evidence-panel-title {
-      font-weight: 600;
-      margin-bottom: 8px;
-      padding-bottom: 4px;
-      border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
-    }
-
     .evidence-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
       padding: 6px 0;
-      border-bottom: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      border-bottom: 1px solid rgba(127,127,127,0.1);
     }
 
     .evidence-item:last-child {
       border-bottom: none;
     }
 
-    .evidence-run-header {
+    .evidence-body {
+      flex: 1;
+      min-width: 0;
       display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 4px;
+      align-items: baseline;
+      gap: 8px;
     }
 
-    .run-link {
-      color: var(--vscode-textLink-foreground);
-      cursor: pointer;
-      text-decoration: underline;
-    }
-
-    .run-link:hover {
-      color: var(--vscode-textLink-activeForeground);
-    }
-
-    .evidence-reason {
+    .evidence-desc {
+      flex: 1;
       font-size: 0.9em;
-      color: var(--vscode-descriptionForeground);
-      margin-top: 4px;
+      line-height: 1.5;
+      color: var(--vscode-foreground);
+    }
+
+    .evidence-actions {
+      display: flex;
+      gap: 4px;
+      flex: 0 0 60px;
+      justify-content: flex-end;
+    }
+
+    .evidence-btn {
+      background: var(--vscode-button-secondaryBackground, rgba(127,127,127,0.15));
+      color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+      border: none;
+      border-radius: 3px;
+      padding: 2px 8px;
+      font-size: 0.8em;
+      cursor: pointer;
+      font-family: var(--vscode-font-family);
+    }
+
+    .evidence-btn:hover {
+      background: var(--vscode-button-secondaryHoverBackground, rgba(127,127,127,0.25));
     }
 
     /* Behavior table */

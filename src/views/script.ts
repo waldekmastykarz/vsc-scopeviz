@@ -7,18 +7,11 @@ export function getScript(): string {
   const pct = (n) => n >= 0 ? '+' + Math.round(n * 100) + '%' : Math.round(n * 100) + '%';
   let evidenceIdCounter = 0;
 
-  // Render a clickable pass rate that expands to show per-run evidence
-  function prLink(passRate, evidence, criterionDesc) {
-    if (!passRate) return '—';
-    const label = passRate.passed + '/' + passRate.total;
-    if (!evidence || !evidence.length) return label;
-    const id = 'ev-' + (evidenceIdCounter++);
-    let html = '<span class="rate-link" data-ev-id="' + id + '">' + label + '</span>';
-    html += '<div class="evidence-panel" id="' + id + '">';
-    if (criterionDesc) html += '<div class="evidence-panel-title">' + e(criterionDesc) + '</div>';
-    evidence.forEach(ev => {
+  // Render the evidence panel HTML (without the rate link wrapper)
+  function evidencePanel(id, evidence) {
+    let html = '<div class="evidence-panel" id="' + id + '">';
+    evidence.forEach((ev, i) => {
       html += '<div class="evidence-item">';
-      // Find run to determine pass/fail
       const run = readout.runs && readout.runs.find(r => r.id === ev.runId);
       let status = '';
       if (run && ev.criterionName && run.results.criteriaResults[ev.criterionName]) {
@@ -26,19 +19,31 @@ export function getScript(): string {
       }
       const statusIcon = status === 'pass' ? '✓' : status === 'fail' ? '✗' : '·';
       const statusCls = status === 'pass' ? 'run-status-pass' : status === 'fail' ? 'run-status-fail' : '';
-      html += '<div class="evidence-run-header">';
-      html += '<span class="' + statusCls + '">' + statusIcon + '</span> ';
-      html += '<span class="run-link" data-run-id="' + e(ev.runId) + '">Run ' + e(ev.runId) + '</span>';
-      html += ' <span class="trajectory-link" data-run="' + e(ev.runId) + '">open trajectory</span>';
-      html += '</div>';
-      if (ev.excerpt) html += '<div class="evidence-excerpt">' + e(ev.excerpt) + '</div>';
-      if (run && ev.criterionName && run.results.criteriaResults[ev.criterionName]) {
-        html += '<div class="evidence-reason">' + e(run.results.criteriaResults[ev.criterionName].reason) + '</div>';
+      html += '<span class="evidence-status ' + statusCls + '">' + statusIcon + '</span>';
+      html += '<div class="evidence-body">';
+      if (ev.excerpt) {
+        html += '<span class="evidence-desc">' + e(ev.excerpt) + '</span>';
+      } else if (run && ev.criterionName && run.results.criteriaResults[ev.criterionName]) {
+        html += '<span class="evidence-desc">' + e(run.results.criteriaResults[ev.criterionName].reason) + '</span>';
       }
+      html += '<span class="evidence-actions">';
+      html += '<button class="evidence-btn run-link" data-run-id="' + e(ev.runId) + '" title="View run">⬦</button>';
+      html += '<button class="evidence-btn trajectory-link" data-run="' + e(ev.runId) + '" title="Open trajectory">↗</button>';
+      html += '</span>';
+      html += '</div>';
       html += '</div>';
     });
     html += '</div>';
     return html;
+  }
+
+  // Render a clickable pass rate that expands to show per-run evidence
+  function prLink(passRate, evidence, criterionDesc) {
+    if (!passRate) return { label: '—', panel: '', id: null };
+    const label = passRate.passed + '/' + passRate.total;
+    if (!evidence || !evidence.length) return { label: label, panel: '', id: null };
+    const id = 'ev-' + (evidenceIdCounter++);
+    return { label: label, panel: evidencePanel(id, evidence), id: id };
   }
 
   const meta = readout.metadata;
@@ -120,20 +125,20 @@ export function getScript(): string {
     tableHtml += '<div class="expanded-content">';
 
     if (r.deltaDefects != null) {
-      tableHtml += '<div class="metric"><span class="metric-label">Δ Defects</span><br><span class="metric-value">' + pct(r.deltaDefects) + '</span></div>';
+      tableHtml += '<div class="metric"><span class="metric-label">Δ Defects</span><span class="metric-value">' + pct(r.deltaDefects) + '</span></div>';
     }
     if (r.deltaTokens != null) {
-      tableHtml += '<div class="metric"><span class="metric-label">Δ Tokens</span><br><span class="metric-value">' + (r.deltaTokens > 0 ? '+' : '') + r.deltaTokens.toLocaleString() + '</span></div>';
+      tableHtml += '<div class="metric"><span class="metric-label">Δ Tokens</span><span class="metric-value">' + (r.deltaTokens > 0 ? '+' : '') + r.deltaTokens.toLocaleString() + '</span></div>';
     }
     presentGates.forEach(g => {
-      if (r[g]) tableHtml += '<div class="metric"><span class="metric-label">' + g.charAt(0).toUpperCase() + g.slice(1) + '</span><br><span class="metric-value">' + pr(r[g]) + '</span></div>';
+      if (r[g]) tableHtml += '<div class="metric"><span class="metric-label">' + g.charAt(0).toUpperCase() + g.slice(1) + '</span><span class="metric-value">' + pr(r[g]) + '</span></div>';
     });
     presentDims.forEach(d => {
       const labels = { idiomatic: 'Idiomatic', dependencyCurrency: 'Currency', configurationCorrectness: 'Config' };
-      if (r[d]) tableHtml += '<div class="metric"><span class="metric-label">' + labels[d] + '</span><br><span class="metric-value">' + pr(r[d]) + '</span></div>';
+      if (r[d]) tableHtml += '<div class="metric"><span class="metric-label">' + labels[d] + '</span><span class="metric-value">' + pr(r[d]) + '</span></div>';
     });
     if (r.defects != null) {
-      tableHtml += '<div class="metric"><span class="metric-label">Defects</span><br><span class="metric-value">' + r.defects.toFixed(1) + '</span></div>';
+      tableHtml += '<div class="metric"><span class="metric-label">Defects</span><span class="metric-value">' + r.defects.toFixed(1) + '</span></div>';
     }
 
     tableHtml += '</div>';
@@ -141,17 +146,30 @@ export function getScript(): string {
     // Criteria breakdown for this profile
     const breakdown = sc.criteriaBreakdowns.find(b => b.profileId === r.profileId);
     if (breakdown) {
-      tableHtml += '<table class="criteria-table"><thead><tr><th>Dimension</th><th>Criterion</th><th>Rate</th></tr></thead><tbody>';
+      tableHtml += '<div class="criteria-list">';
+      tableHtml += '<div class="criteria-list-header"><span>Dimension</span><span>Criterion</span><span>Rate</span></div>';
       breakdown.dimensions.forEach(dim => {
         dim.criteria.forEach((c, ci) => {
-          tableHtml += '<tr>';
-          if (ci === 0) tableHtml += '<td rowspan="' + dim.criteria.length + '"><strong>' + e(dim.name) + '</strong> ' + pr(dim.passRate) + '</td>';
-          tableHtml += '<td>' + e(c.description) + (c.annotation ? '<span class="annotation">' + e(c.annotation) + '</span>' : '') + '</td>';
-          tableHtml += '<td>' + prLink(c.passRate, c.evidence, c.description) + '</td>';
-          tableHtml += '</tr>';
+          const result = prLink(c.passRate, c.evidence, c.description);
+          const hasEvidence = result.id != null;
+          const rowCls = hasEvidence ? 'criteria-row criteria-expandable' : 'criteria-row';
+          const evAttr = hasEvidence ? ' data-ev-id="' + result.id + '"' : '';
+          tableHtml += '<div class="' + rowCls + '"' + evAttr + '>';
+          if (ci === 0) {
+            tableHtml += '<div class="criteria-group-label">' + e(dim.name) + '</div>';
+          } else {
+            tableHtml += '<div class="criteria-group-label"></div>';
+          }
+          tableHtml += '<div class="criteria-item">';
+          tableHtml += '<span class="criteria-desc">' + e(c.description) + (c.annotation ? '<span class="annotation">' + e(c.annotation) + '</span>' : '') + '</span>';
+          tableHtml += '<span class="criteria-rate">' + result.label + '</span>';
+          if (hasEvidence) tableHtml += '<span class="criteria-caret expand-arrow">▶</span>';
+          tableHtml += '</div>';
+          tableHtml += '</div>';
+          if (hasEvidence) tableHtml += result.panel;
         });
       });
-      tableHtml += '</tbody></table>';
+      tableHtml += '</div>';
     }
 
     tableHtml += '</td></tr>';
@@ -168,6 +186,7 @@ export function getScript(): string {
       const arrow = document.getElementById('arrow-' + idx);
       expanded.classList.toggle('visible');
       arrow.classList.toggle('open');
+      row.classList.toggle('expanded');
     });
   });
 
@@ -184,8 +203,20 @@ export function getScript(): string {
     if (!evidence || !evidence.length) return '';
     let h = '';
     evidence.forEach(ev => {
-      if (ev.excerpt) h += '<div class="evidence-excerpt">' + e(ev.excerpt) + '</div>';
-      if (ev.runId) h += '<span class="trajectory-link" data-run="' + e(ev.runId) + '">Open trajectory (run ' + e(ev.runId) + ')</span> ';
+      h += '<div class="evidence-item">';
+
+      h += '<div class="evidence-body">';
+      if (ev.excerpt) {
+        h += '<span class="evidence-desc">' + e(ev.excerpt) + '</span>';
+      }
+      h += '<span class="evidence-actions">';
+      if (ev.runId) {
+        h += '<button class="evidence-btn run-link" data-run-id="' + e(ev.runId) + '" title="View run">⬦</button>';
+        h += '<button class="evidence-btn trajectory-link" data-run="' + e(ev.runId) + '" title="Open trajectory">↗</button>';
+      }
+      h += '</span>';
+      h += '</div>';
+      h += '</div>';
     });
     return h;
   }
@@ -198,38 +229,58 @@ export function getScript(): string {
 
   // Fix items
   if (al.fix && al.fix.length) {
-    actionHtml += '<div class="section-group-header">Fix</div>';
+    actionHtml += '<h3>Fix</h3>';
     al.fix.sort((a, b) => a.priority - b.priority).forEach(item => {
-      actionHtml += '<div class="action-card">';
-      actionHtml += '<div class="action-card-header">';
+      actionHtml += '<div class="action-row">';
+      actionHtml += '<div class="action-row-header">';
+      actionHtml += '<div class="action-row-top">';
       actionHtml += '<span class="priority-badge ' + priorityClass(item.priority) + '">P' + item.priority + '</span>';
-      actionHtml += '<span class="action-label">' + e(item.rootCause) + ' → ' + e(item.fixTarget) + '</span>';
+      actionHtml += '<span class="action-label">' + e(item.fixTarget) + '</span>';
+      actionHtml += '<span class="action-meta">' + pr(item.runs) + ' runs</span>';
+      actionHtml += '<span class="expand-arrow action-caret">▶</span>';
       actionHtml += '</div>';
-      actionHtml += '<div class="action-meta">' + pr(item.runs) + ' runs';
-      if (item.ownership) actionHtml += ' · <span class="badge">' + e(item.ownership) + '</span>';
+      actionHtml += '<div class="action-tags">';
+      actionHtml += '<span class="badge">' + e(item.rootCause) + '</span>';
+      if (item.ownership) actionHtml += '<span class="badge">' + e(item.ownership) + '</span>';
+      actionHtml += '</div>';
       actionHtml += '</div>';
       actionHtml += '<div class="action-detail">';
+      actionHtml += '<h4>Description</h4>';
       actionHtml += '<p>' + e(item.description) + '</p>';
-      actionHtml += renderEvidence(item.evidence);
+      if (item.evidence && item.evidence.length) {
+        actionHtml += '<h4>Evidence</h4>';
+        actionHtml += renderEvidence(item.evidence);
+      }
       actionHtml += '</div></div>';
     });
   }
 
   // Create items
   if (al.create && al.create.length) {
-    actionHtml += '<div class="section-group-header">Create</div>';
+    actionHtml += '<h3>Create</h3>';
     al.create.sort((a, b) => a.priority - b.priority).forEach(item => {
-      actionHtml += '<div class="action-card">';
-      actionHtml += '<div class="action-card-header">';
+      actionHtml += '<div class="action-row">';
+      actionHtml += '<div class="action-row-header">';
+      actionHtml += '<div class="action-row-top">';
       actionHtml += '<span class="priority-badge ' + priorityClass(item.priority) + '">P' + item.priority + '</span>';
-      actionHtml += '<span class="action-label">' + e(item.gap) + ' → ' + e(item.whatToBuild) + '</span>';
+      actionHtml += '<span class="action-label">' + e(item.whatToBuild) + '</span>';
+      actionHtml += '<span class="action-meta">' + pr(item.runs) + ' runs</span>';
+      actionHtml += '<span class="expand-arrow action-caret">▶</span>';
       actionHtml += '</div>';
-      actionHtml += '<div class="action-meta">' + pr(item.runs) + ' runs';
-      if (item.type) actionHtml += ' · <span class="badge">' + e(item.type) + '</span>';
+      actionHtml += '<div class="action-tags">';
+      actionHtml += '<span class="badge">' + e(item.gap) + '</span>';
+      if (item.type) actionHtml += '<span class="badge">' + e(item.type) + '</span>';
+      actionHtml += '</div>';
       actionHtml += '</div>';
       actionHtml += '<div class="action-detail">';
-      if (item.rationale) actionHtml += '<p>' + e(item.rationale) + '</p>';
-      actionHtml += renderEvidence(item.evidence);
+      if (item.rationale) {
+        actionHtml += '<h4>Description</h4>';
+        actionHtml += '<p>' + e(item.rationale) + '</p>';
+      }
+      if (item.evidence && item.evidence.length) {
+        actionHtml += '<h4>Evidence</h4>';
+        actionHtml += renderEvidence(item.evidence);
+      }
       actionHtml += '</div></div>';
     });
   }
@@ -238,16 +289,21 @@ export function getScript(): string {
   if (al.constraints && al.constraints.length) {
     actionHtml += '<details><summary>' + al.constraints.length + ' constraint' + (al.constraints.length > 1 ? 's' : '') + '</summary>';
     al.constraints.sort((a, b) => a.priority - b.priority).forEach(item => {
-      actionHtml += '<div class="action-card">';
-      actionHtml += '<div class="action-card-header">';
+      actionHtml += '<div class="action-row">';
+      actionHtml += '<div class="action-row-header">';
       actionHtml += '<span class="priority-badge ' + priorityClass(item.priority) + '">P' + item.priority + '</span>';
       actionHtml += '<span class="action-label">' + e(item.rootCause) + '</span>';
+      actionHtml += '<span class="action-meta">' + pr(item.runs) + ' runs · affects ' + e(item.affected) + '</span>';
+      actionHtml += '<span class="expand-arrow action-caret">▶</span>';
       actionHtml += '</div>';
-      actionHtml += '<div class="action-meta">' + pr(item.runs) + ' runs · affects ' + e(item.affected) + '</div>';
       actionHtml += '<div class="action-detail">';
+      actionHtml += '<h4>Description</h4>';
       actionHtml += '<p>' + e(item.description) + '</p>';
       if (item.mitigation) actionHtml += '<p><strong>Mitigation:</strong> ' + e(item.mitigation) + '</p>';
-      actionHtml += renderEvidence(item.evidence);
+      if (item.evidence && item.evidence.length) {
+        actionHtml += '<h4>Evidence</h4>';
+        actionHtml += renderEvidence(item.evidence);
+      }
       actionHtml += '</div></div>';
     });
     actionHtml += '</details>';
@@ -255,11 +311,14 @@ export function getScript(): string {
 
   actionEl.innerHTML = actionHtml;
 
-  // Toggle action cards
-  document.querySelectorAll('.action-card').forEach(card => {
-    card.addEventListener('click', (evt) => {
-      if (evt.target.closest('.trajectory-link')) return;
-      card.classList.toggle('open');
+  // Toggle action rows
+  document.querySelectorAll('.action-row').forEach(row => {
+    const header = row.querySelector('.action-row-header');
+    if (header) header.addEventListener('click', (evt) => {
+      if (evt.target.closest('.trajectory-link') || evt.target.closest('.run-link')) return;
+      const caret = row.querySelector('.action-caret');
+      row.classList.toggle('open');
+      if (caret) caret.classList.toggle('open');
     });
   });
 
@@ -274,7 +333,7 @@ export function getScript(): string {
   }
 
   sc.criteriaBreakdowns.forEach(cb => {
-    scoresHtml += '<h3 style="margin: 12px 0 6px; font-size: 0.95em;">' + e(profileName(cb.profileId)) + '</h3>';
+    scoresHtml += '<h3>' + e(profileName(cb.profileId)) + '</h3>';
     scoresHtml += '<table class="criteria-table"><thead><tr><th>Dimension</th><th>Criterion</th><th>Rate</th></tr></thead><tbody>';
     cb.dimensions.forEach(dim => {
       dim.criteria.forEach((c, ci) => {
@@ -283,7 +342,8 @@ export function getScript(): string {
           scoresHtml += '<td rowspan="' + dim.criteria.length + '"><strong>' + e(dim.name) + '</strong> ' + pr(dim.passRate) + '</td>';
         }
         scoresHtml += '<td>' + e(c.description) + (c.annotation ? ' <span class="annotation">' + e(c.annotation) + '</span>' : '') + '</td>';
-        scoresHtml += '<td>' + prLink(c.passRate, c.evidence, c.description) + '</td>';
+        const sr = prLink(c.passRate, c.evidence, c.description);
+        scoresHtml += '<td>' + sr.label + sr.panel + '</td>';
         scoresHtml += '</tr>';
       });
     });
@@ -297,7 +357,7 @@ export function getScript(): string {
   const ba = readout.behaviorAnalysis;
 
   ba.profiles.forEach(bp => {
-    behavHtml += '<h3 style="margin: 12px 0 6px; font-size: 0.95em;">' + e(profileName(bp.profileId)) + '</h3>';
+    behavHtml += '<h3>' + e(profileName(bp.profileId)) + '</h3>';
     if (bp.narrative) {
       behavHtml += '<div class="narrative">' + e(bp.narrative) + '</div>';
     }
@@ -327,7 +387,7 @@ export function getScript(): string {
     });
 
     Object.keys(grouped).forEach(pid => {
-      runsHtml += '<h3 style="margin: 12px 0 6px; font-size: 0.95em;">' + e(profileName(pid)) + '</h3>';
+      runsHtml += '<h3>' + e(profileName(pid)) + '</h3>';
       grouped[pid].forEach((run, ri) => {
         const runIdx = pid + '-' + ri;
         const selectStatus = run.results.gates.select.status;
@@ -368,7 +428,7 @@ export function getScript(): string {
 
         // Behavior observations
         if (run.results.behaviorObservations && run.results.behaviorObservations.length) {
-          runsHtml += '<h4 style="margin: 10px 0 4px; font-size: 0.9em;">Behaviors</h4>';
+          runsHtml += '<h4>Behaviors</h4>';
           run.results.behaviorObservations.forEach(bo => {
             runsHtml += '<p><strong>' + e(bo.category) + ':</strong> ' + e(bo.behavior);
             if (bo.sourceArtifact) runsHtml += ' (' + e(bo.sourceArtifact) + ')';
@@ -378,7 +438,7 @@ export function getScript(): string {
 
         // Root causes
         if (run.results.rootCauses && run.results.rootCauses.length) {
-          runsHtml += '<h4 style="margin: 10px 0 4px; font-size: 0.9em;">Root Causes</h4>';
+          runsHtml += '<h4>Root Causes</h4>';
           run.results.rootCauses.forEach(rc => {
             runsHtml += '<p><strong>' + e(rc.label) + '</strong> (' + e(rc.section) + '): ' + e(rc.behaviorChain) + '</p>';
           });
@@ -451,15 +511,19 @@ export function getScript(): string {
     }
   });
 
-  // ─── Rate links → evidence panels ───
+  // ─── Criteria row → evidence panels ───
   document.addEventListener('click', (evt) => {
-    const rateLink = evt.target.closest('.rate-link');
-    if (!rateLink) return;
+    const row = evt.target.closest('.criteria-expandable');
+    if (!row) return;
+    if (evt.target.closest('.trajectory-link') || evt.target.closest('.run-link')) return;
     evt.stopPropagation();
-    const evId = rateLink.getAttribute('data-ev-id');
+    const evId = row.getAttribute('data-ev-id');
     const panel = document.getElementById(evId);
+    const caret = row.querySelector('.criteria-caret');
     if (panel) {
       panel.classList.toggle('visible');
+      if (caret) caret.classList.toggle('open');
+      row.classList.toggle('expanded');
     }
   });
 
