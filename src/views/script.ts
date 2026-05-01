@@ -92,11 +92,18 @@ export function getScript(): string {
   const presentGates = gateKeys.filter(k => sc.profileResults.some(r => r[k]));
   const presentDims = dimKeys.filter(k => sc.profileResults.some(r => r[k]));
 
+  // Sort so baseline profile is always first
+  const sortedResults = sc.profileResults.slice().sort((a, b) => {
+    const aBase = profileMap[a.profileId] && profileMap[a.profileId].isBaseline ? 1 : 0;
+    const bBase = profileMap[b.profileId] && profileMap[b.profileId].isBaseline ? 1 : 0;
+    return bBase - aBase;
+  });
+
   let tableHtml = '<table class="lift-table"><thead><tr>';
   tableHtml += '<th>Profile</th><th>Δ Lift</th><th>Select</th><th>Tokens</th>';
   tableHtml += '</tr></thead><tbody>';
 
-  sc.profileResults.forEach((r, idx) => {
+  sortedResults.forEach((r, idx) => {
     const cls = rowClass(r);
     const isBase = profileMap[r.profileId] && profileMap[r.profileId].isBaseline;
     const dl = r.deltaLift != null ? (r.deltaLift > 0 ? '+' : '') + r.deltaLift.toFixed(2) : '—';
