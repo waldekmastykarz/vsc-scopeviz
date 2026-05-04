@@ -1,4 +1,4 @@
-# Scopeviz
+# Scope readout preview
 
 [![VS Code Marketplace](https://vsmarketplacebadges.dev/version/waldek.scopeviz.svg)](https://marketplace.visualstudio.com/items?itemName=waldek.scopeviz)
 [![Installs](https://vsmarketplacebadges.dev/installs-short/waldek.scopeviz.svg)](https://marketplace.visualstudio.com/items?itemName=waldek.scopeviz)
@@ -23,7 +23,7 @@ Raw Scope readout JSON is painful to read. Scrolling through nested scorecard da
 
 1. Install the extension
 2. Open a Scope readout `.json` file
-3. Click the **graph icon** in the editor title bar (or run `Scopeviz: Open Readout Preview` from the Command Palette)
+3. Click the **graph icon** in the editor title bar (or run `Scope readout preview: Open Readout Preview` from the Command Palette)
 
 The preview opens in a side panel so you can read the readout alongside the raw JSON.
 

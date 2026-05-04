@@ -1,6 +1,6 @@
 {
   "name": "scopeviz",
-  "displayName": "Scopeviz",
+  "displayName": "Scope readout preview",
   "description": "Visualizes Scope readout JSON files — answers 'Does my extension help or harm?' and 'What do I change where?'",
   "version": "0.1.0",
   "publisher": "waldek",
@@ -25,7 +25,7 @@
     "commands": [
       {
         "command": "scopeviz.preview",
-        "title": "Scopeviz: Open Readout Preview",
+        "title": "Scope readout preview: Open Readout Preview",
         "icon": "$(graph-line)"
       }
     ],
