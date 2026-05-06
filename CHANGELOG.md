@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-06
+
+### Fixed
+
+- Show harness name instead of raw profile ID for non-baseline profiles
+- Prefix harness name on extension profiles only when different from baseline
+- Separate harnesses with `·` in header subtitle instead of comma-separated list
+- Sort profiles: baseline first, same-harness next, other harnesses last
+
 ## [0.1.1] - 2026-05-04
 
 ### Changed
