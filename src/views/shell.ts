@@ -56,7 +56,7 @@ export function getHtml(
 <body>
   <header class="readout-header">
     <h1>${escapeHtml(readout.metadata.title)}</h1>
-    <p class="subtitle">${escapeHtml(readout.metadata.harness)} · ${escapeHtml(readout.metadata.model)} · ${readout.metadata.runsPerProfile} runs/profile</p>
+    <p class="subtitle">${buildSubtitle(readout.metadata)}</p>
   </header>
 
   <section id="section-lift" class="section">
@@ -93,6 +93,17 @@ export function getHtml(
   </script>
 </body>
 </html>`;
+}
+
+function buildSubtitle(meta: Readout['metadata']): string {
+  const harnesses = [...new Set(meta.profiles.map(p => p.harness))];
+  const models = [...new Set(meta.profiles.map(p => p.model))];
+  const parts = [
+    harnesses.map(escapeHtml).join(' · '),
+    models.map(escapeHtml).join(', '),
+    `${meta.runsPerProfile} runs/profile`
+  ];
+  return parts.join(' · ');
 }
 
 function escapeHtml(text: string): string {

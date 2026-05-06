@@ -59,12 +59,19 @@ export function getScript(): string {
   const baselineTokens = baseline ? baseline.tokens : null;
 
   // Profile display name
+  const uniqueHarnesses = new Set(profiles.map(function(pr) { return pr.harness; }));
+  const multiHarness = uniqueHarnesses.size > 1;
+
   function profileName(pid) {
     const p = profileMap[pid];
     if (!p) return pid;
     if (p.isBaseline) return 'Bare baseline';
-    if (p.extensions && p.extensions.length) return '+ ' + p.extensions.join(', ');
-    return p.id;
+    var sameAsBaseline = baselineProfile && p.harness === baselineProfile.harness;
+    if (p.extensions && p.extensions.length) {
+      var prefix = multiHarness && !sameAsBaseline ? p.harness + ' ' : '';
+      return prefix + '+ ' + p.extensions.join(', ');
+    }
+    return p.harness;
   }
 
   // Row color class
@@ -97,11 +104,18 @@ export function getScript(): string {
   const presentGates = gateKeys.filter(k => sc.profileResults.some(r => r[k]));
   const presentDims = dimKeys.filter(k => sc.profileResults.some(r => r[k]));
 
-  // Sort so baseline profile is always first
+  // Sort: baseline first, then same-harness profiles, then other harnesses
+  const baselineProfile = profiles.find(function(p) { return p.isBaseline; });
+  const baselineHarness = baselineProfile ? baselineProfile.harness : '';
   const sortedResults = sc.profileResults.slice().sort((a, b) => {
-    const aBase = profileMap[a.profileId] && profileMap[a.profileId].isBaseline ? 1 : 0;
-    const bBase = profileMap[b.profileId] && profileMap[b.profileId].isBaseline ? 1 : 0;
-    return bBase - aBase;
+    const pa = profileMap[a.profileId];
+    const pb = profileMap[b.profileId];
+    const aBase = pa && pa.isBaseline ? 1 : 0;
+    const bBase = pb && pb.isBaseline ? 1 : 0;
+    if (aBase !== bBase) return bBase - aBase;
+    const aSame = pa && pa.harness === baselineHarness ? 1 : 0;
+    const bSame = pb && pb.harness === baselineHarness ? 1 : 0;
+    return bSame - aSame;
   });
 
   let tableHtml = '<table class="lift-table"><thead><tr>';
