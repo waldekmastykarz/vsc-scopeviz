@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-05-20
+
+### Added
+
+- Display scenario instruction in readout header as a collapsible block
+
+### Maintenance
+
+- Added 7-day cooldown for Dependabot updates
+- Bumped @types/node from 25.6.0 to 25.6.2
+- Bumped typescript-eslint from 8.56.1 to 8.59.2
+
 ## [0.1.2] - 2026-05-06
 
 ### Fixed
