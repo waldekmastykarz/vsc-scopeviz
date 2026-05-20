@@ -32,6 +32,31 @@ export function getStyles(): string {
       margin-top: 2px;
     }
 
+    .instruction-block {
+      margin-top: 8px;
+    }
+
+    .instruction-block summary {
+      cursor: pointer;
+      color: var(--vscode-descriptionForeground);
+      font-size: 0.9em;
+      user-select: none;
+    }
+
+    .instruction-text {
+      margin-top: 6px;
+      padding: 8px 12px;
+      background: var(--vscode-textBlockQuote-background, var(--vscode-editor-background));
+      border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-widget-border));
+      color: var(--vscode-foreground);
+      font-family: var(--vscode-font-family);
+      font-size: 0.9em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.5;
+      border-radius: var(--radius);
+    }
+
     .section {
       margin-bottom: 24px;
     }

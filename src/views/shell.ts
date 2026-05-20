@@ -57,6 +57,10 @@ export function getHtml(
   <header class="readout-header">
     <h1>${escapeHtml(readout.metadata.title)}</h1>
     <p class="subtitle">${buildSubtitle(readout.metadata)}</p>
+    <details class="instruction-block">
+      <summary>Instruction</summary>
+      <pre class="instruction-text">${escapeHtml(readout.metadata.instruction)}</pre>
+    </details>
   </header>
 
   <section id="section-lift" class="section">
