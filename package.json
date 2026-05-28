@@ -2,7 +2,7 @@
   "name": "scopeviz",
   "displayName": "Scope readout preview",
   "description": "Visualizes Scope readout JSON files — answers 'Does my extension help or harm?' and 'What do I change where?'",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "publisher": "waldek",
   "license": "MIT",
   "icon": "icon.png",
