@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-05-28
+
+### Added
+
+- Preview icon on the custom editor tab
+
 ## [0.2.0] - 2026-05-28
 
 ### Changed
