@@ -4,3 +4,4 @@ node_modules
 *.vsix
 .benchmarks
 PLAN.md
+.DS_Store
