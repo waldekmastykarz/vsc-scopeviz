@@ -22,18 +22,40 @@
   "activationEvents": [],
   "main": "./out/extension.js",
   "contributes": {
+    "customEditors": [
+      {
+        "viewType": "scopeviz.preview",
+        "displayName": "Scope Readout Preview",
+        "priority": "option",
+        "selector": [
+          {
+            "filenamePattern": "*.json"
+          }
+        ]
+      }
+    ],
     "commands": [
       {
         "command": "scopeviz.preview",
         "title": "Scope readout preview: Open Readout Preview",
         "icon": "$(graph-line)"
+      },
+      {
+        "command": "scopeviz.showSource",
+        "title": "Scope readout preview: Show Source",
+        "icon": "$(file-code)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "when": "resourceExtname == .json",
+          "when": "resourceExtname == .json && activeCustomEditorId != scopeviz.preview",
           "command": "scopeviz.preview",
+          "group": "navigation"
+        },
+        {
+          "when": "activeCustomEditorId == scopeviz.preview",
+          "command": "scopeviz.showSource",
           "group": "navigation"
         }
       ]

@@ -3,71 +3,56 @@ import { Readout } from './types';
 import { tryParse } from './validation';
 import { getHtml } from './views/shell';
 
-export class ScopevizPanel {
+export class ScopevizEditorProvider implements vscode.CustomTextEditorProvider {
   public static readonly viewType = 'scopeviz.preview';
-  private static panels = new Map<string, ScopevizPanel>();
 
-  private readonly panel: vscode.WebviewPanel;
-  private readonly docUri: string;
-  private readout: Readout | undefined;
-  private disposables: vscode.Disposable[] = [];
+  constructor(private readonly extensionUri: vscode.Uri) {}
 
-  static createOrShow(extensionUri: vscode.Uri, document: vscode.TextDocument) {
-    const key = document.uri.toString();
-    const existing = ScopevizPanel.panels.get(key);
-    if (existing) {
-      existing.panel.reveal(vscode.ViewColumn.Beside);
-      return;
-    }
-
-    const panel = vscode.window.createWebviewPanel(
-      ScopevizPanel.viewType,
-      `Readout: ${document.uri.path.split('/').pop()}`,
-      vscode.ViewColumn.Beside,
-      { enableScripts: true, retainContextWhenHidden: true }
+  public static register(context: vscode.ExtensionContext): vscode.Disposable {
+    const provider = new ScopevizEditorProvider(context.extensionUri);
+    return vscode.window.registerCustomEditorProvider(
+      ScopevizEditorProvider.viewType,
+      provider,
+      { supportsMultipleEditorsPerDocument: false }
     );
-
-    const instance = new ScopevizPanel(panel, document, extensionUri);
-    ScopevizPanel.panels.set(key, instance);
   }
 
-  static updateIfVisible(document: vscode.TextDocument) {
-    const key = document.uri.toString();
-    const instance = ScopevizPanel.panels.get(key);
-    if (instance) {
-      instance.update(document);
-    }
-  }
-
-  private constructor(
-    panel: vscode.WebviewPanel,
+  public resolveCustomTextEditor(
     document: vscode.TextDocument,
-    private readonly extensionUri: vscode.Uri
-  ) {
-    this.panel = panel;
-    this.docUri = document.uri.toString();
-    this.update(document);
+    webviewPanel: vscode.WebviewPanel,
+    _token: vscode.CancellationToken
+  ): void {
+    webviewPanel.webview.options = { enableScripts: true };
 
-    this.panel.onDidDispose(() => this.dispose(), null, this.disposables);
+    const update = () => {
+      const text = document.getText();
+      const { readout, errors } = tryParse(text);
+      const nonce = getNonce();
+      webviewPanel.webview.html = getHtml(webviewPanel.webview, nonce, readout, errors);
+    };
 
-    this.panel.webview.onDidReceiveMessage(
-      (msg) => this.handleMessage(msg),
-      null,
-      this.disposables
+    const changeSubscription = vscode.workspace.onDidChangeTextDocument((e) => {
+      if (e.document.uri.toString() === document.uri.toString()) {
+        update();
+      }
+    });
+
+    webviewPanel.onDidDispose(() => {
+      changeSubscription.dispose();
+    });
+
+    webviewPanel.webview.onDidReceiveMessage((msg) =>
+      this.handleMessage(document.uri, msg)
     );
+
+    update();
   }
 
-  private update(document: vscode.TextDocument) {
-    const text = document.getText();
-    const { readout, errors } = tryParse(text);
-    this.readout = readout;
-    const nonce = getNonce();
-    this.panel.webview.html = getHtml(this.panel.webview, nonce, readout, errors);
-  }
-
-  private async handleMessage(msg: { command: string; path?: string; runId?: string }) {
+  private async handleMessage(
+    docUri: vscode.Uri,
+    msg: { command: string; path?: string; runId?: string }
+  ) {
     if (msg.command === 'openTrajectory') {
-      const docUri = vscode.Uri.parse(this.docUri);
       const readoutDir = vscode.Uri.joinPath(docUri, '..');
 
       if (msg.path) {
@@ -77,7 +62,6 @@ export class ScopevizPanel {
           vscode.window.showWarningMessage(`Could not open trajectory: ${msg.path}`);
         }
       } else if (msg.runId) {
-        // Search for {runId}/trajectory.json under the readout directory
         const pattern = new vscode.RelativePattern(readoutDir, `**/${msg.runId}/trajectory.json`);
         const files = await vscode.workspace.findFiles(pattern, null, 1);
         if (files.length > 0) {
@@ -97,14 +81,6 @@ export class ScopevizPanel {
     const doc = await vscode.workspace.openTextDocument(uri);
     await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
     await vscode.commands.executeCommand('atif-visualizer.preview');
-  }
-
-  private dispose() {
-    ScopevizPanel.panels.delete(this.docUri);
-    this.panel.dispose();
-    while (this.disposables.length) {
-      this.disposables.pop()?.dispose();
-    }
   }
 }
 
