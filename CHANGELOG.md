@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-28
+
+### Changed
+
+- Preview now opens in-place using the Custom Editor API instead of a side panel
+- Added "Show Source" button to toggle back to the JSON source from the preview
+
+### Maintenance
+
+- Added .DS_Store to .gitignore
+- Bumped @types/node, @types/vscode, eslint, typescript-eslint
+
 ## [0.1.3] - 2026-05-20
 
 ### Added
