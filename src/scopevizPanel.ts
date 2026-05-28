@@ -23,6 +23,7 @@ export class ScopevizEditorProvider implements vscode.CustomTextEditorProvider {
     _token: vscode.CancellationToken
   ): void {
     webviewPanel.webview.options = { enableScripts: true };
+    webviewPanel.iconPath = new vscode.ThemeIcon('graph-line');
 
     const update = () => {
       const text = document.getText();
