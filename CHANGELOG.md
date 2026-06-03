@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-03
+
+### Fixed
+
+- Profile names now show what's unique compared to the baseline (model, harness, extensions, instructions) instead of falling back to the harness name
+- Subtitle shows only the baseline model and harness instead of listing all profiles
+
+### Added
+
+- Support for `additionalInstructions` field on profiles
+
 ## [0.2.2] - 2026-05-28
 
 ### Maintenance
