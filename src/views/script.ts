@@ -59,19 +59,30 @@ export function getScript(): string {
   const baselineTokens = baseline ? baseline.tokens : null;
 
   // Profile display name
-  const uniqueHarnesses = new Set(profiles.map(function(pr) { return pr.harness; }));
-  const multiHarness = uniqueHarnesses.size > 1;
+  const baselineProfile = profiles.find(function(p) { return p.isBaseline; });
 
   function profileName(pid) {
     const p = profileMap[pid];
     if (!p) return pid;
     if (p.isBaseline) return 'Bare baseline';
-    var sameAsBaseline = baselineProfile && p.harness === baselineProfile.harness;
-    if (p.extensions && p.extensions.length) {
-      var prefix = multiHarness && !sameAsBaseline ? p.harness + ' ' : '';
-      return prefix + '+ ' + p.extensions.join(', ');
+
+    var diffs = [];
+    if (baselineProfile && p.harness !== baselineProfile.harness) {
+      diffs.push(p.harness);
     }
-    return p.harness;
+    if (baselineProfile && p.model !== baselineProfile.model) {
+      diffs.push(p.model);
+    }
+    if (p.extensions && p.extensions.length) {
+      diffs.push('+ ' + p.extensions.join(', '));
+    }
+    if (p.additionalInstructions) {
+      diffs.push('instructions: ' + p.additionalInstructions);
+    }
+    if (diffs.length === 0) {
+      return p.harness;
+    }
+    return diffs.join(' \u00b7 ');
   }
 
   // Row color class
@@ -105,7 +116,6 @@ export function getScript(): string {
   const presentDims = dimKeys.filter(k => sc.profileResults.some(r => r[k]));
 
   // Sort: baseline first, then same-harness profiles, then other harnesses
-  const baselineProfile = profiles.find(function(p) { return p.isBaseline; });
   const baselineHarness = baselineProfile ? baselineProfile.harness : '';
   const sortedResults = sc.profileResults.slice().sort((a, b) => {
     const pa = profileMap[a.profileId];

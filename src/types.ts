@@ -29,6 +29,7 @@ export interface Profile {
   extensions?: string[];
   os?: string;
   isBaseline?: boolean;
+  additionalInstructions?: string;
 }
 
 export interface CriterionDefinition {

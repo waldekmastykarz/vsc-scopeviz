@@ -100,11 +100,9 @@ export function getHtml(
 }
 
 function buildSubtitle(meta: Readout['metadata']): string {
-  const harnesses = [...new Set(meta.profiles.map(p => p.harness))];
-  const models = [...new Set(meta.profiles.map(p => p.model))];
   const parts = [
-    harnesses.map(escapeHtml).join(' · '),
-    models.map(escapeHtml).join(', '),
+    escapeHtml(meta.harness),
+    escapeHtml(meta.model),
     `${meta.runsPerProfile} runs/profile`
   ];
   return parts.join(' · ');

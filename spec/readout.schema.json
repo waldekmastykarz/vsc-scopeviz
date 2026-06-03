@@ -77,7 +77,8 @@
           "description": "Extension points loaded. Empty or omitted for bare baseline."
         },
         "os": { "type": "string", "examples": ["Windows", "macOS"] },
-        "isBaseline": { "type": "boolean", "description": "True for the bare baseline profile used as delta reference." }
+        "isBaseline": { "type": "boolean", "description": "True for the bare baseline profile used as delta reference." },
+        "additionalInstructions": { "type": "string", "description": "Extra instructions given to the agent for this profile." }
       }
     },
 
