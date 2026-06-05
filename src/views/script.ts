@@ -67,17 +67,23 @@ export function getScript(): string {
     if (p.isBaseline) return 'Bare baseline';
 
     var diffs = [];
+    var harnessOrModelDiffers = baselineProfile && (p.harness !== baselineProfile.harness || p.model !== baselineProfile.model);
     if (baselineProfile && p.harness !== baselineProfile.harness) {
       diffs.push(p.harness);
     }
     if (baselineProfile && p.model !== baselineProfile.model) {
       diffs.push(p.model);
     }
+    var additions = [];
     if (p.extensions && p.extensions.length) {
-      diffs.push('+ ' + p.extensions.join(', '));
+      additions.push(p.extensions.join(', '));
     }
     if (p.additionalInstructions) {
-      diffs.push('instructions: ' + p.additionalInstructions);
+      additions.push('instructions: ' + p.additionalInstructions);
+    }
+    if (additions.length) {
+      var prefix = harnessOrModelDiffers ? '' : '+ ';
+      diffs.push(prefix + additions.join(', '));
     }
     if (diffs.length === 0) {
       return p.harness;
