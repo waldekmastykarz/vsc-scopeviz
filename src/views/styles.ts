@@ -548,6 +548,10 @@ export function getStyles(): string {
       gap: 8px;
     }
 
+    .run-card-header .trajectory-link {
+      margin-left: auto;
+    }
+
     .run-card-header:hover {
       background: var(--vscode-list-hoverBackground);
     }

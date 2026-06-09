@@ -440,6 +440,14 @@ export function getScript(): string {
         });
 
         if (run.results.tokens) runsHtml += '<span class="action-meta">' + (run.results.tokens / 1000).toFixed(1) + 'K tokens</span>';
+
+        // Trajectory link on header bar
+        if (run.trajectoryRef) {
+          runsHtml += '<button class="evidence-btn trajectory-link" data-path="' + e(run.trajectoryRef) + '" title="Open trajectory">↗</button>';
+        } else {
+          runsHtml += '<button class="evidence-btn trajectory-link" data-run="' + e(run.id) + '" title="Open trajectory">↗</button>';
+        }
+
         runsHtml += '</div>';
 
         // Detail
@@ -472,11 +480,6 @@ export function getScript(): string {
           run.results.rootCauses.forEach(rc => {
             runsHtml += '<p><strong>' + e(rc.label) + '</strong> (' + e(rc.section) + '): ' + e(rc.behaviorChain) + '</p>';
           });
-        }
-
-        // Trajectory link
-        if (run.trajectoryRef) {
-          runsHtml += '<p style="margin-top: 8px;"><span class="trajectory-link" data-path="' + e(run.trajectoryRef) + '">Open trajectory</span></p>';
         }
 
         runsHtml += '</div></div>';

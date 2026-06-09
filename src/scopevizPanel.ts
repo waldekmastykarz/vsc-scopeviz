@@ -13,7 +13,7 @@ export class ScopevizEditorProvider implements vscode.CustomTextEditorProvider {
     return vscode.window.registerCustomEditorProvider(
       ScopevizEditorProvider.viewType,
       provider,
-      { supportsMultipleEditorsPerDocument: false }
+      { supportsMultipleEditorsPerDocument: false, webviewOptions: { retainContextWhenHidden: true } }
     );
   }
 
@@ -80,7 +80,7 @@ export class ScopevizEditorProvider implements vscode.CustomTextEditorProvider {
 
   private async openTrajectoryFile(uri: vscode.Uri) {
     const doc = await vscode.workspace.openTextDocument(uri);
-    await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+    await vscode.window.showTextDocument(doc, { preview: false });
     await vscode.commands.executeCommand('atif-visualizer.preview');
   }
 }
