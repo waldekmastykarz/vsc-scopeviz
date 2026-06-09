@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-06-09
+
+### Added
+
+- Trajectory button on run card headers, resolving by runId when `trajectoryRef` is not set
+- Retain webview state when switching tabs (`retainContextWhenHidden`)
+
+### Changed
+
+- Trajectories open as pinned tabs in the same tab group instead of replacing the current editor
+
+### Maintenance
+
+- Upgraded eslint to 10.4.1, typescript-eslint to 8.60.1
+
 ## [0.2.4] - 2026-06-05
 
 ### Fixed
