@@ -2,14 +2,22 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-21
+
 ### Changed
 
 - Lift/Drag headline now shows Select · Score · Δ Lift · Cost ($/run), matching the new pooled-score readout model. Δ Lift is rendered as signed percentage points (`+X.Xpp`), cost as `$/run` with a signed dollar delta.
+- Gate detail (Build/Test/Run/Deploy) and average tokens moved into the row drill-down, labeled `Tokens/run`. Per-dimension subtotals are folded into the criteria breakdown header instead of standalone blocks.
 
 ### Added
 
-- Reliability vs quality split, per-dimension diagnostic rates, cost/token detail moved into the row drill-down
-- Best-effort client-side Score for legacy readouts (no `score` field), marked with `*` and a legacy note; cost falls back to tokens
+- New `profileResult` fields: `score`, `qualityScore`, `reliabilityScore`, `avgCostUsd`, `deltaCostUsd`.
+- Gate blocks in the drill-down link to the corresponding profile's run group in the Runs section.
+- Best-effort client-side Score for legacy readouts (no `score` field), marked with `*` and a legacy note; cost falls back to tokens.
+
+### Maintenance
+
+- Bumped dev dependencies (`@types/node`, `@types/vscode`, `@vscode/test-cli`, `@vscode/test-electron`, eslint, typescript-eslint) and CI actions (`checkout`/`setup-node` to v7).
 
 ## [0.3.0] - 2026-06-09
 
