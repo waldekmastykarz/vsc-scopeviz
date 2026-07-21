@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Lift/Drag headline now shows Select · Score · Δ Lift · Cost ($/run), matching the new pooled-score readout model. Δ Lift is rendered as signed percentage points (`+X.Xpp`), cost as `$/run` with a signed dollar delta.
+
+### Added
+
+- Reliability vs quality split, per-dimension diagnostic rates, cost/token detail moved into the row drill-down
+- Best-effort client-side Score for legacy readouts (no `score` field), marked with `*` and a legacy note; cost falls back to tokens
+
 ## [0.3.0] - 2026-06-09
 
 ### Added

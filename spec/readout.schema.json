@@ -161,9 +161,27 @@
           "items": { "type": "string" },
           "description": "IDs of the runs that this profile result aggregates over."
         },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Headline Score (0-1): pooled pass rate over ALL checks = (gate passes + quality-criteria passes) / (gate totals + quality-criteria totals). This is the primary number."
+        },
+        "qualityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Diagnostic split: pooled pass rate over quality criteria only (gates excluded)."
+        },
+        "reliabilityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Diagnostic split: pooled pass rate over gates only."
+        },
         "deltaLift": {
           "type": "number",
-          "description": "Mean pass-rate delta vs. baseline across non-N/A dimensions. Null for baseline."
+          "description": "Δ Lift = score(profile) - score(baseline), stored as a decimal (e.g. 0.096 = +9.6pp). Null for baseline."
         },
         "deltaDefects": {
           "type": "number",
@@ -184,16 +202,25 @@
         "test": { "$ref": "#/$defs/passRate" },
         "run": { "$ref": "#/$defs/passRate" },
         "deploy": { "$ref": "#/$defs/passRate" },
-        "idiomatic": { "$ref": "#/$defs/passRate" },
-        "dependencyCurrency": { "$ref": "#/$defs/passRate" },
-        "configurationCorrectness": { "$ref": "#/$defs/passRate" },
+        "idiomatic": { "$ref": "#/$defs/passRate", "description": "Diagnostic only (NOT used for scoring)." },
+        "dependencyCurrency": { "$ref": "#/$defs/passRate", "description": "Diagnostic only (NOT used for scoring)." },
+        "configurationCorrectness": { "$ref": "#/$defs/passRate", "description": "Diagnostic only (NOT used for scoring)." },
         "defects": {
           "type": "number",
           "description": "Average defect count per run. Code scenarios only."
         },
         "tokens": {
           "type": "integer",
-          "description": "Average token count per run (raw)."
+          "description": "Average token count per run (raw). Diagnostic; the headline cost figure is avgCostUsd."
+        },
+        "avgCostUsd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Average cost per run in USD, priced from per-turn token usage at the model's GitHub Copilot rates. Headline cost figure."
+        },
+        "deltaCostUsd": {
+          "type": "number",
+          "description": "avgCostUsd(profile) - avgCostUsd(baseline), in USD. Null for baseline."
         },
         "requests": {
           "type": "number",

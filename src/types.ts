@@ -46,6 +46,13 @@ export interface PassRate {
 export interface ProfileResult {
   profileId: string;
   runIds?: string[];
+  /** Headline Score (0–1): pooled pass rate over all gates + quality criteria. */
+  score?: number;
+  /** Diagnostic split: pooled pass rate over quality criteria only. */
+  qualityScore?: number;
+  /** Diagnostic split: pooled pass rate over gates only. */
+  reliabilityScore?: number;
+  /** score(profile) − score(baseline), as a decimal (0.096 = +9.6pp). Null for baseline. */
   deltaLift?: number;
   deltaDefects?: number;
   deltaTokens?: number;
@@ -60,6 +67,10 @@ export interface ProfileResult {
   configurationCorrectness?: PassRate;
   defects?: number;
   tokens: number;
+  /** Average cost per run in USD. Headline cost figure. */
+  avgCostUsd?: number;
+  /** avgCostUsd(profile) − avgCostUsd(baseline), in USD. Null for baseline. */
+  deltaCostUsd?: number;
   requests?: number;
 }
 
