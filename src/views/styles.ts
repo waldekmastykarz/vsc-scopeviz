@@ -120,6 +120,36 @@ export function getStyles(): string {
     table.lift-table tr.row-amber { background: rgba(255,180,0,0.1); }
     table.lift-table tr.row-baseline { background: transparent; }
 
+    /* Sign-colored deltas (Δ Lift, Δ Cost) */
+    .delta-pos { color: var(--vscode-charts-green, #3fb950); }
+    .delta-neg { color: var(--vscode-charts-red, #f85149); }
+
+    /* Computed (legacy) Score marker */
+    .computed-mark {
+      color: var(--vscode-descriptionForeground);
+      font-size: 0.85em;
+      vertical-align: super;
+      margin-left: 1px;
+    }
+
+    .legacy-note {
+      font-size: 0.82em;
+      color: var(--vscode-descriptionForeground);
+      background: rgba(127,127,127,0.08);
+      border: 1px solid var(--vscode-widget-border, var(--vscode-panel-border));
+      border-radius: var(--radius);
+      padding: 4px 10px;
+      margin-bottom: 8px;
+    }
+
+    .diag-tag {
+      font-size: 0.72em;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--vscode-descriptionForeground);
+      opacity: 0.7;
+    }
+
     table.lift-table tr.expandable { cursor: pointer; }
     table.lift-table tr.expandable .expand-arrow {
       opacity: 0;
@@ -188,6 +218,19 @@ export function getStyles(): string {
     .expanded-content .metric-value {
       font-weight: 600;
       font-size: 1.05em;
+    }
+
+    .expanded-content .metric.gate-link {
+      cursor: pointer;
+    }
+
+    .expanded-content .metric.gate-link:hover {
+      border-color: var(--vscode-focusBorder);
+      background: var(--vscode-list-hoverBackground);
+    }
+
+    .expanded-content .metric.gate-link .metric-value {
+      color: var(--vscode-textLink-foreground);
     }
 
     /* Criteria breakdown — grouped list */
@@ -269,6 +312,12 @@ export function getStyles(): string {
       color: var(--vscode-foreground);
       margin-bottom: 4px;
       flex: 0 0 140px;
+    }
+
+    .criteria-group-subtotal {
+      font-weight: 400;
+      color: var(--vscode-descriptionForeground);
+      margin-left: 6px;
     }
 
     .criteria-item {

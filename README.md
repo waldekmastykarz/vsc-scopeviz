@@ -13,7 +13,7 @@ Raw Scope readout JSON is painful to read. Scrolling through nested scorecard da
 ## Features
 
 - **One-click preview** — click the graph icon in the editor title bar on any readout JSON file
-- **Lift / Drag section** — profile comparison table showing deltas, selection status, and token costs
+- **Lift / Drag section** — profile comparison table showing Select, Score, Δ Lift, and cost per run ($/run)
 - **What to Change section** — prioritized action cards with root cause, affected runs, and fix targets
 - **Supporting Evidence section** — expandable scores, behaviors, and individual run details
 - **Live reload** — preview updates automatically as you edit the source file

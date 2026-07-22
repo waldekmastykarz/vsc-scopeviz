@@ -4,7 +4,6 @@ export function getScript(): string {
   const vscode = acquireVsCodeApi();
   const e = (t) => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
   const pr = (p) => p ? p.passed + '/' + p.total : '—';
-  const pct = (n) => n >= 0 ? '+' + Math.round(n * 100) + '%' : Math.round(n * 100) + '%';
   let evidenceIdCounter = 0;
 
   // Render the evidence panel HTML (without the rate link wrapper)
@@ -57,6 +56,69 @@ export function getScript(): string {
     return p && p.isBaseline;
   });
   const baselineTokens = baseline ? baseline.tokens : null;
+  const baselineCost = baseline && baseline.avgCostUsd != null ? baseline.avgCostUsd : null;
+
+  // Whether this readout uses the new scoring model (presence of profileResult.score).
+  const hasStoredScore = sc.profileResults.some(r => typeof r.score === 'number');
+
+  // Best-effort Score computation for legacy readouts (no stored score).
+  function computeScores(r) {
+    var gatePassed = 0, gateTotal = 0;
+    ['select', 'build', 'test', 'run', 'deploy'].forEach(function(g) {
+      if (r[g]) { gatePassed += r[g].passed; gateTotal += r[g].total; }
+    });
+    var qPassed = 0, qTotal = 0;
+    var breakdown = sc.criteriaBreakdowns.find(function(b) { return b.profileId === r.profileId; });
+    if (breakdown) {
+      breakdown.dimensions.forEach(function(dim) {
+        if (/prerequisite/i.test(dim.name)) return;
+        dim.criteria.forEach(function(c) {
+          if (c.passRate) { qPassed += c.passRate.passed; qTotal += c.passRate.total; }
+        });
+      });
+    }
+    return {
+      score: (gateTotal + qTotal) ? (gatePassed + qPassed) / (gateTotal + qTotal) : null,
+      qualityScore: qTotal ? qPassed / qTotal : null,
+      reliabilityScore: gateTotal ? gatePassed / gateTotal : null,
+      computed: true
+    };
+  }
+
+  // Resolve score fields per profile: stored when available, computed for legacy.
+  const scoreMap = {};
+  sc.profileResults.forEach(function(r) {
+    if (typeof r.score === 'number') {
+      scoreMap[r.profileId] = {
+        score: r.score,
+        qualityScore: r.qualityScore != null ? r.qualityScore : null,
+        reliabilityScore: r.reliabilityScore != null ? r.reliabilityScore : null,
+        computed: false
+      };
+    } else {
+      scoreMap[r.profileId] = computeScores(r);
+    }
+  });
+  const baselineScore = baseline && scoreMap[baseline.profileId] ? scoreMap[baseline.profileId].score : null;
+
+  // Δ Lift for a row: stored value for new readouts, computed vs baseline for legacy.
+  function resolvedLift(r) {
+    const isBase = profileMap[r.profileId] && profileMap[r.profileId].isBaseline;
+    if (isBase) return null;
+    const s = scoreMap[r.profileId];
+    if (s && s.computed) {
+      return (s.score != null && baselineScore != null) ? s.score - baselineScore : null;
+    }
+    return r.deltaLift != null ? r.deltaLift : null;
+  }
+
+  // Percentages
+  const scorePct = (n) => n == null ? '—' : Math.round(n * 100) + '%';
+  // Δ Lift in percentage points (signed, 1 decimal).
+  const ppSigned = (n) => (n >= 0 ? '+' : '') + (n * 100).toFixed(1) + 'pp';
+  // Cost in dollars per run.
+  const costFmt = (n) => '$' + n.toFixed(2) + '/run';
+  const costDeltaFmt = (n) => (n >= 0 ? '+$' : '-$') + Math.abs(n).toFixed(2);
 
   // Profile display name
   const baselineProfile = profiles.find(function(p) { return p.isBaseline; });
@@ -95,11 +157,19 @@ export function getScript(): string {
   function rowClass(pr) {
     const p = profileMap[pr.profileId];
     if (p && p.isBaseline) return 'row-baseline';
-    if (pr.deltaLift == null) return 'row-baseline';
-    if (pr.deltaLift < 0) return 'row-drag';
-    if (pr.deltaLift === 0 && baselineTokens && pr.tokens > baselineTokens) return 'row-drag';
-    if (pr.deltaLift > 0 && baselineTokens && ((pr.tokens - baselineTokens) / baselineTokens) > 0.5) return 'row-amber';
-    if (pr.deltaLift > 0) return 'row-lift';
+    const lift = resolvedLift(pr);
+    if (lift == null) return 'row-baseline';
+    // Cost overrun ratio vs baseline (prefer dollars, fall back to tokens).
+    let costOverrun = 0;
+    if (baselineCost != null && pr.avgCostUsd != null && baselineCost > 0) {
+      costOverrun = (pr.avgCostUsd - baselineCost) / baselineCost;
+    } else if (baselineTokens && pr.tokens != null) {
+      costOverrun = (pr.tokens - baselineTokens) / baselineTokens;
+    }
+    if (lift < 0) return 'row-drag';
+    if (lift === 0 && costOverrun > 0) return 'row-drag';
+    if (lift > 0 && costOverrun > 0.5) return 'row-amber';
+    if (lift > 0) return 'row-lift';
     return 'row-baseline';
   }
 
@@ -115,11 +185,9 @@ export function getScript(): string {
   // ─── Lift/Drag Table ───
   const liftEl = document.getElementById('lift-table');
 
-  // Determine which gates/dimensions are present
-  const gateKeys = ['build', 'test', 'run', 'deploy'];
-  const dimKeys = ['idiomatic', 'dependencyCurrency', 'configurationCorrectness'];
-  const presentGates = gateKeys.filter(k => sc.profileResults.some(r => r[k]));
-  const presentDims = dimKeys.filter(k => sc.profileResults.some(r => r[k]));
+  // Profiles that have individual runs listed in the Runs section (for gate → runs links).
+  const profilesWithRuns = {};
+  if (readout.runs) readout.runs.forEach(rn => { profilesWithRuns[rn.profileId] = true; });
 
   // Sort: baseline first, then same-harness profiles, then other harnesses
   const baselineHarness = baselineProfile ? baselineProfile.harness : '';
@@ -134,41 +202,77 @@ export function getScript(): string {
     return bSame - aSame;
   });
 
-  let tableHtml = '<table class="lift-table"><thead><tr>';
-  tableHtml += '<th>Profile</th><th>Δ Lift</th><th>Select</th><th>Tokens</th>';
+  let tableHtml = '';
+  if (!hasStoredScore) {
+    tableHtml += '<div class="legacy-note" title="This readout predates the Score/Cost model. Score and Δ Lift are computed client-side from gates and criteria; cost is shown as tokens.">Legacy readout — Score computed from gates + criteria; cost shown as tokens.</div>';
+  }
+  tableHtml += '<table class="lift-table"><thead><tr>';
+  tableHtml += '<th>Profile</th><th>Select</th><th>Score</th><th>Δ Lift</th><th>Cost</th>';
   tableHtml += '</tr></thead><tbody>';
 
   sortedResults.forEach((r, idx) => {
     const cls = rowClass(r);
     const isBase = profileMap[r.profileId] && profileMap[r.profileId].isBaseline;
-    const dl = r.deltaLift != null ? (r.deltaLift > 0 ? '+' : '') + r.deltaLift.toFixed(2) : '—';
+    const s = scoreMap[r.profileId] || {};
+    const lift = resolvedLift(r);
+
+    // Score cell (mark computed values from legacy readouts).
+    let scoreCell = scorePct(s.score);
+    if (s.computed && s.score != null) {
+      scoreCell = '<span class="computed" title="Computed from gates + criteria (legacy readout)">' + scoreCell + '<span class="computed-mark">*</span></span>';
+    }
+
+    // Δ Lift cell (signed, colored; — on baseline).
+    let liftCell = '—';
+    if (lift != null) {
+      const liftCls = lift >= 0 ? 'delta-pos' : 'delta-neg';
+      liftCell = '<span class="' + liftCls + '">' + ppSigned(lift) + '</span>';
+    }
+
+    // Cost cell: dollars/run for new readouts, tokens for legacy.
+    let costCell;
+    if (r.avgCostUsd != null) {
+      costCell = costFmt(r.avgCostUsd);
+      if (!isBase && r.deltaCostUsd != null) {
+        const dcCls = r.deltaCostUsd <= 0 ? 'delta-pos' : 'delta-neg';
+        costCell += ' <span class="' + dcCls + '">(' + costDeltaFmt(r.deltaCostUsd) + ')</span>';
+      }
+    } else {
+      costCell = fmtTokens(r.tokens, !isBase);
+    }
 
     tableHtml += '<tr class="' + cls + ' expandable" data-idx="' + idx + '">';
     tableHtml += '<td><span class="expand-arrow" id="arrow-' + idx + '">▶</span> ' + e(profileName(r.profileId)) + '</td>';
-    tableHtml += '<td>' + dl + '</td>';
     tableHtml += '<td>' + pr(r.select) + '</td>';
-    tableHtml += '<td>' + fmtTokens(r.tokens, !isBase) + '</td>';
+    tableHtml += '<td>' + scoreCell + '</td>';
+    tableHtml += '<td>' + liftCell + '</td>';
+    tableHtml += '<td>' + costCell + '</td>';
     tableHtml += '</tr>';
 
     // Expanded row (hidden by default)
-    tableHtml += '<tr class="expanded-row" id="expanded-' + idx + '"><td colspan="4">';
+    tableHtml += '<tr class="expanded-row" id="expanded-' + idx + '"><td colspan="5">';
     tableHtml += '<div class="expanded-content">';
 
-    if (r.deltaDefects != null) {
-      tableHtml += '<div class="metric"><span class="metric-label">Δ Defects</span><span class="metric-value">' + pct(r.deltaDefects) + '</span></div>';
+    // Gate detail (Select is in the headline)
+    const gateLabel = (g) => g.charAt(0).toUpperCase() + g.slice(1);
+    const hasRuns = !!profilesWithRuns[r.profileId];
+    const gateBlock = (label, rate) => {
+      const cls = hasRuns ? 'metric gate-link' : 'metric';
+      const attrs = hasRuns ? ' data-profile-id="' + e(r.profileId) + '" title="Jump to runs for this profile"' : '';
+      return '<div class="' + cls + '"' + attrs + '><span class="metric-label">' + label + '</span><span class="metric-value">' + pr(rate) + '</span></div>';
+    };
+
+    // Build
+    if (r.build) {
+      tableHtml += gateBlock('Build', r.build);
     }
-    if (r.deltaTokens != null) {
-      tableHtml += '<div class="metric"><span class="metric-label">Δ Tokens</span><span class="metric-value">' + (r.deltaTokens > 0 ? '+' : '') + r.deltaTokens.toLocaleString() + '</span></div>';
-    }
-    presentGates.forEach(g => {
-      if (r[g]) tableHtml += '<div class="metric"><span class="metric-label">' + g.charAt(0).toUpperCase() + g.slice(1) + '</span><span class="metric-value">' + pr(r[g]) + '</span></div>';
+    // Run and other gates (build already shown)
+    ['test', 'run', 'deploy'].forEach(g => {
+      if (r[g]) tableHtml += gateBlock(gateLabel(g), r[g]);
     });
-    presentDims.forEach(d => {
-      const labels = { idiomatic: 'Idiomatic', dependencyCurrency: 'Currency', configurationCorrectness: 'Config' };
-      if (r[d]) tableHtml += '<div class="metric"><span class="metric-label">' + labels[d] + '</span><span class="metric-value">' + pr(r[d]) + '</span></div>';
-    });
-    if (r.defects != null) {
-      tableHtml += '<div class="metric"><span class="metric-label">Defects</span><span class="metric-value">' + r.defects.toFixed(1) + '</span></div>';
+    // Cost/diagnostic tail
+    if (r.tokens != null) {
+      tableHtml += '<div class="metric"><span class="metric-label">Tokens/run</span><span class="metric-value">' + fmtTokens(r.tokens, !isBase) + '</span></div>';
     }
 
     tableHtml += '</div>';
@@ -179,6 +283,9 @@ export function getScript(): string {
       tableHtml += '<div class="criteria-list">';
       tableHtml += '<div class="criteria-list-header"><span>Dimension</span><span>Criterion</span><span>Rate</span></div>';
       breakdown.dimensions.forEach(dim => {
+        var dimPassed = 0, dimTotal = 0;
+        dim.criteria.forEach(c => { if (c.passRate) { dimPassed += c.passRate.passed; dimTotal += c.passRate.total; } });
+        const dimSubtotal = dimTotal > 0 ? dimPassed + '/' + dimTotal : '';
         dim.criteria.forEach((c, ci) => {
           const result = prLink(c.passRate, c.evidence, c.description);
           const hasEvidence = result.id != null;
@@ -186,7 +293,7 @@ export function getScript(): string {
           const evAttr = hasEvidence ? ' data-ev-id="' + result.id + '"' : '';
           tableHtml += '<div class="' + rowCls + '"' + evAttr + '>';
           if (ci === 0) {
-            tableHtml += '<div class="criteria-group-label">' + e(dim.name) + '</div>';
+            tableHtml += '<div class="criteria-group-label">' + e(dim.name) + (dimSubtotal ? '<span class="criteria-group-subtotal">' + dimSubtotal + '</span>' : '') + '</div>';
           } else {
             tableHtml += '<div class="criteria-group-label"></div>';
           }
@@ -417,7 +524,7 @@ export function getScript(): string {
     });
 
     Object.keys(grouped).forEach(pid => {
-      runsHtml += '<h3>' + e(profileName(pid)) + '</h3>';
+      runsHtml += '<h3 id="runs-profile-' + e(pid) + '">' + e(profileName(pid)) + '</h3>';
       grouped[pid].forEach((run, ri) => {
         const runIdx = pid + '-' + ri;
         const selectStatus = run.results.gates.select.status;
@@ -542,6 +649,20 @@ export function getScript(): string {
       if (arrow && !arrow.classList.contains('open')) arrow.classList.add('open');
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+  });
+
+  // ─── Gate blocks → scroll to the profile's run group ───
+  document.addEventListener('click', (evt) => {
+    const gateLink = evt.target.closest('.gate-link');
+    if (!gateLink) return;
+    evt.preventDefault();
+    evt.stopPropagation();
+    const pid = gateLink.getAttribute('data-profile-id');
+    if (!pid) return;
+    const runsDetails = document.getElementById('evidence-runs');
+    if (runsDetails && !runsDetails.open) runsDetails.open = true;
+    const target = document.getElementById('runs-profile-' + pid);
+    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   // ─── Criteria row → evidence panels ───
