@@ -24,6 +24,7 @@ export interface Metadata {
 
 export interface Profile {
   id: string;
+  name?: string;
   harness: string;
   model: string;
   extensions?: string[];

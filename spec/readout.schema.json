@@ -69,6 +69,7 @@
       "additionalProperties": false,
       "properties": {
         "id": { "type": "string" },
+        "name": { "type": "string", "description": "Optional display name for this profile. When omitted, consumers derive a name from the profile configuration." },
         "harness": { "type": "string", "examples": ["Copilot Chat", "Claude Code"] },
         "model": { "type": "string", "examples": ["Sonnet 4.6", "GPT-5"] },
         "extensions": {

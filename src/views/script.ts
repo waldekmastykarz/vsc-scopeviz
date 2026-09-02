@@ -126,6 +126,7 @@ export function getScript(): string {
   function profileName(pid) {
     const p = profileMap[pid];
     if (!p) return pid;
+    if (p.name) return p.name;
     if (p.isBaseline) return 'Bare baseline';
 
     var diffs = [];
