@@ -1,9 +1,18 @@
+import { GatePassRate } from '../types';
+
+export function formatPassRate(passRate: GatePassRate | undefined): string {
+  if (passRate === 'N/A') {
+    return passRate;
+  }
+  return passRate ? passRate.passed + '/' + passRate.total : '—';
+}
+
 export function getScript(): string {
   return `
 (function() {
   const vscode = acquireVsCodeApi();
   const e = (t) => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
-  const pr = (p) => p ? p.passed + '/' + p.total : '—';
+  const pr = ${formatPassRate.toString()};
   let evidenceIdCounter = 0;
 
   // Render the evidence panel HTML (without the rate link wrapper)
@@ -65,7 +74,7 @@ export function getScript(): string {
   function computeScores(r) {
     var gatePassed = 0, gateTotal = 0;
     ['select', 'build', 'test', 'run', 'deploy'].forEach(function(g) {
-      if (r[g]) { gatePassed += r[g].passed; gateTotal += r[g].total; }
+      if (r[g] && r[g] !== 'N/A') { gatePassed += r[g].passed; gateTotal += r[g].total; }
     });
     var qPassed = 0, qTotal = 0;
     var breakdown = sc.criteriaBreakdowns.find(function(b) { return b.profileId === r.profileId; });

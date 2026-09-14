@@ -44,6 +44,8 @@ export interface PassRate {
   total: number;
 }
 
+export type GatePassRate = PassRate | 'N/A';
+
 export interface ProfileResult {
   profileId: string;
   runIds?: string[];
@@ -58,11 +60,11 @@ export interface ProfileResult {
   deltaDefects?: number;
   deltaTokens?: number;
   codeGenerationRate?: number;
-  select: PassRate;
-  build?: PassRate;
-  test?: PassRate;
-  run?: PassRate;
-  deploy?: PassRate;
+  select: GatePassRate;
+  build?: GatePassRate;
+  test?: GatePassRate;
+  run?: GatePassRate;
+  deploy?: GatePassRate;
   idiomatic?: PassRate;
   dependencyCurrency?: PassRate;
   configurationCorrectness?: PassRate;
