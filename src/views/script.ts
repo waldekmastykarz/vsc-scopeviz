@@ -1,4 +1,4 @@
-import { GatePassRate } from '../types';
+import { CriteriaBreakdown, CriterionDefinition, GatePassRate, ProfileResult } from '../types';
 
 export function formatPassRate(passRate: GatePassRate | undefined): string {
   if (passRate === 'N/A') {
@@ -7,12 +7,59 @@ export function formatPassRate(passRate: GatePassRate | undefined): string {
   return passRate ? passRate.passed + '/' + passRate.total : '—';
 }
 
+export function computeLegacyScores(
+  profileResult: ProfileResult,
+  breakdown: CriteriaBreakdown | undefined,
+  criterionDefinitions: CriterionDefinition[] | undefined
+): { score: number | null; qualityScore: number | null; reliabilityScore: number | null; computed: true } {
+  let gatePassed = 0;
+  let gateTotal = 0;
+  (['select', 'build', 'test', 'run', 'deploy'] as const).forEach(gate => {
+    const passRate = profileResult[gate];
+    if (passRate && passRate !== 'N/A') {
+      gatePassed += passRate.passed;
+      gateTotal += passRate.total;
+    }
+  });
+
+  let qualityPassed = 0;
+  let qualityTotal = 0;
+  let criteriaClassified = true;
+  if (breakdown) {
+    breakdown.dimensions.forEach(dimension => {
+      dimension.criteria.forEach(criterion => {
+        const definition = criterionDefinitions?.find(candidate =>
+          candidate.name === criterion.description || candidate.name === criterion.id
+        );
+        if (!definition) {
+          criteriaClassified = false;
+          return;
+        }
+        if (definition.classification.toLowerCase() !== 'prerequisite') {
+          qualityPassed += criterion.passRate.passed;
+          qualityTotal += criterion.passRate.total;
+        }
+      });
+    });
+  }
+
+  return {
+    score: criteriaClassified && (gateTotal + qualityTotal) > 0
+      ? (gatePassed + qualityPassed) / (gateTotal + qualityTotal)
+      : null,
+    qualityScore: criteriaClassified && qualityTotal > 0 ? qualityPassed / qualityTotal : null,
+    reliabilityScore: gateTotal > 0 ? gatePassed / gateTotal : null,
+    computed: true
+  };
+}
+
 export function getScript(): string {
   return `
 (function() {
   const vscode = acquireVsCodeApi();
   const e = (t) => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
   const pr = ${formatPassRate.toString()};
+  const computeLegacyScores = ${computeLegacyScores.toString()};
   let evidenceIdCounter = 0;
 
   // Render the evidence panel HTML (without the rate link wrapper)
@@ -65,34 +112,9 @@ export function getScript(): string {
     return p && p.isBaseline;
   });
   const baselineTokens = baseline ? baseline.tokens : null;
-  const baselineCost = baseline && baseline.avgCostUsd != null ? baseline.avgCostUsd : null;
-
-  // Whether this readout uses the new scoring model (presence of profileResult.score).
-  const hasStoredScore = sc.profileResults.some(r => typeof r.score === 'number');
-
-  // Best-effort Score computation for legacy readouts (no stored score).
-  function computeScores(r) {
-    var gatePassed = 0, gateTotal = 0;
-    ['select', 'build', 'test', 'run', 'deploy'].forEach(function(g) {
-      if (r[g] && r[g] !== 'N/A') { gatePassed += r[g].passed; gateTotal += r[g].total; }
-    });
-    var qPassed = 0, qTotal = 0;
-    var breakdown = sc.criteriaBreakdowns.find(function(b) { return b.profileId === r.profileId; });
-    if (breakdown) {
-      breakdown.dimensions.forEach(function(dim) {
-        if (/prerequisite/i.test(dim.name)) return;
-        dim.criteria.forEach(function(c) {
-          if (c.passRate) { qPassed += c.passRate.passed; qTotal += c.passRate.total; }
-        });
-      });
-    }
-    return {
-      score: (gateTotal + qTotal) ? (gatePassed + qPassed) / (gateTotal + qTotal) : null,
-      qualityScore: qTotal ? qPassed / qTotal : null,
-      reliabilityScore: gateTotal ? gatePassed / gateTotal : null,
-      computed: true
-    };
-  }
+  const baselineCost = presentation.costMetric === 'cost' && baseline && baseline.avgCostUsd != null
+    ? baseline.avgCostUsd
+    : null;
 
   // Resolve score fields per profile: stored when available, computed for legacy.
   const scoreMap = {};
@@ -105,7 +127,8 @@ export function getScript(): string {
         computed: false
       };
     } else {
-      scoreMap[r.profileId] = computeScores(r);
+      const breakdown = sc.criteriaBreakdowns.find(function(b) { return b.profileId === r.profileId; });
+      scoreMap[r.profileId] = computeLegacyScores(r, breakdown, meta.criteria);
     }
   });
   const baselineScore = baseline && scoreMap[baseline.profileId] ? scoreMap[baseline.profileId].score : null;
@@ -213,11 +236,12 @@ export function getScript(): string {
   });
 
   let tableHtml = '';
-  if (!hasStoredScore) {
-    tableHtml += '<div class="legacy-note" title="This readout predates the Score/Cost model. Score and Δ Lift are computed client-side from gates and criteria; cost is shown as tokens.">Legacy readout — Score computed from gates + criteria; cost shown as tokens.</div>';
+  if (presentation.hasComputedScores) {
+    const tokenNote = presentation.costMetric === 'tokens' ? '; cost shown as tokens' : '';
+    tableHtml += '<div class="legacy-note" title="This readout has profiles without stored scores. Score and Δ Lift are computed client-side from gates and classified criteria' + tokenNote + '.">Legacy readout — Score computed from gates + criteria' + tokenNote + '.</div>';
   }
   tableHtml += '<table class="lift-table"><thead><tr>';
-  tableHtml += '<th>Profile</th><th>Select</th><th>Score</th><th>Δ Lift</th><th>Cost</th>';
+  tableHtml += '<th>Profile</th><th>Select</th><th>Score</th><th>Δ Lift</th><th>' + (presentation.costMetric === 'cost' ? 'Cost' : 'Tokens') + '</th>';
   tableHtml += '</tr></thead><tbody>';
 
   sortedResults.forEach((r, idx) => {
@@ -241,7 +265,7 @@ export function getScript(): string {
 
     // Cost cell: dollars/run for new readouts, tokens for legacy.
     let costCell;
-    if (r.avgCostUsd != null) {
+    if (presentation.costMetric === 'cost' && r.avgCostUsd != null) {
       costCell = costFmt(r.avgCostUsd);
       if (!isBase && r.deltaCostUsd != null) {
         const dcCls = r.deltaCostUsd <= 0 ? 'delta-pos' : 'delta-neg';

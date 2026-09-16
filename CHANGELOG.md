@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- Legacy scores use criterion classifications to exclude prerequisites from quality scoring instead of relying on dimension names, and label token usage as `Tokens` rather than `Cost`.
+- Readout presentation derives the subtitle from baseline profiles and chooses score and cost fallbacks from available profile data.
+
 ## [0.6.0] - 2026-09-14
 
 ## [0.5.0] - 2026-09-02

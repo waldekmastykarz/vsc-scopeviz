@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { Readout } from '../types';
+import { buildReadoutPresentation } from '../presentation';
 import { getStyles } from './styles';
 import { getScript } from './script';
 
@@ -43,6 +44,8 @@ export function getHtml(
   }
 
   const dataJson = JSON.stringify(readout);
+  const presentation = buildReadoutPresentation(readout);
+  const presentationJson = JSON.stringify(presentation);
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -56,7 +59,7 @@ export function getHtml(
 <body>
   <header class="readout-header">
     <h1>${escapeHtml(readout.metadata.title)}</h1>
-    <p class="subtitle">${buildSubtitle(readout.metadata)}</p>
+    <p class="subtitle">${escapeHtml(presentation.subtitle)}</p>
     <details class="instruction-block">
       <summary>Instruction</summary>
       <pre class="instruction-text">${escapeHtml(readout.metadata.instruction)}</pre>
@@ -93,19 +96,11 @@ export function getHtml(
 
   <script nonce="${nonce}">
     const readout = ${dataJson};
+    const presentation = ${presentationJson};
     ${getScript()}
   </script>
 </body>
 </html>`;
-}
-
-function buildSubtitle(meta: Readout['metadata']): string {
-  const parts = [
-    escapeHtml(meta.harness),
-    escapeHtml(meta.model),
-    `${meta.runsPerProfile} runs/profile`
-  ];
-  return parts.join(' · ');
 }
 
 function escapeHtml(text: string): string {
