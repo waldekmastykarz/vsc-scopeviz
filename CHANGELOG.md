@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-09-16
+
 ### Fixed
 
 - Legacy scores use criterion classifications to exclude prerequisites from quality scoring instead of relying on dimension names, and label token usage as `Tokens` rather than `Cost`.
