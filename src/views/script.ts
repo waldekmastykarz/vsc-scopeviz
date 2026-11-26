@@ -53,6 +53,31 @@ export function computeLegacyScores(
   };
 }
 
+export type RowTone = 'row-baseline' | 'row-lift' | 'row-drag' | 'row-amber';
+
+/**
+ * Colors a profile row by its lift and its relative cost change vs. the baseline. At equal quality, a cost
+ * change of at least 10% either way makes the row lift or drag; smaller differences are treated as noise.
+ */
+export function rowTone(lift: number | null, costChange: number | null): RowTone {
+  if (lift === null) {
+    return 'row-baseline';
+  }
+  if (lift < 0) {
+    return 'row-drag';
+  }
+  if (lift > 0) {
+    return costChange !== null && costChange > 0.5 ? 'row-amber' : 'row-lift';
+  }
+  if (costChange !== null && costChange >= 0.1) {
+    return 'row-drag';
+  }
+  if (costChange !== null && costChange <= -0.1) {
+    return 'row-lift';
+  }
+  return 'row-baseline';
+}
+
 export function getScript(): string {
   return `
 (function() {
@@ -60,6 +85,7 @@ export function getScript(): string {
   const e = (t) => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
   const pr = ${formatPassRate.toString()};
   const computeLegacyScores = ${computeLegacyScores.toString()};
+  const rowTone = ${rowTone.toString()};
   let evidenceIdCounter = 0;
 
   // Render the evidence panel HTML (without the rate link wrapper)
@@ -192,18 +218,14 @@ export function getScript(): string {
     if (p && p.isBaseline) return 'row-baseline';
     const lift = resolvedLift(pr);
     if (lift == null) return 'row-baseline';
-    // Cost overrun ratio vs baseline (prefer dollars, fall back to tokens).
-    let costOverrun = 0;
+    // Cost change vs baseline (prefer dollars, fall back to tokens).
+    let costChange = null;
     if (baselineCost != null && pr.avgCostUsd != null && baselineCost > 0) {
-      costOverrun = (pr.avgCostUsd - baselineCost) / baselineCost;
+      costChange = (pr.avgCostUsd - baselineCost) / baselineCost;
     } else if (baselineTokens && pr.tokens != null) {
-      costOverrun = (pr.tokens - baselineTokens) / baselineTokens;
+      costChange = (pr.tokens - baselineTokens) / baselineTokens;
     }
-    if (lift < 0) return 'row-drag';
-    if (lift === 0 && costOverrun > 0) return 'row-drag';
-    if (lift > 0 && costOverrun > 0.5) return 'row-amber';
-    if (lift > 0) return 'row-lift';
-    return 'row-baseline';
+    return rowTone(lift, costChange);
   }
 
   // Format tokens

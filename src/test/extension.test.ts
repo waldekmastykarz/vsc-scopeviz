@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
 import { buildReadoutPresentation } from '../presentation';
-import { computeLegacyScores, formatPassRate } from '../views/script';
+import { computeLegacyScores, formatPassRate, rowTone } from '../views/script';
 import { CriteriaBreakdown, CriterionDefinition, ProfileResult, Readout } from '../types';
 
 suite('Extension Test Suite', () => {
@@ -93,6 +93,17 @@ suite('Extension Test Suite', () => {
 			buildReadoutPresentation(readout).subtitle,
 			'Baselines: Baseline harness / Baseline model; Candidate harness / Candidate model · 5 runs/profile'
 		);
+	});
+
+	test('colors equal-quality rows by a cost change of at least 10% either way', () => {
+		assert.strictEqual(rowTone(0, -0.23), 'row-lift');
+		assert.strictEqual(rowTone(0, 0.07), 'row-baseline');
+		assert.strictEqual(rowTone(0, 0.01), 'row-baseline');
+		assert.strictEqual(rowTone(0, 0.1), 'row-drag');
+		assert.strictEqual(rowTone(0, null), 'row-baseline');
+		assert.strictEqual(rowTone(-0.14, -0.5), 'row-drag');
+		assert.strictEqual(rowTone(0.1, 0.6), 'row-amber');
+		assert.strictEqual(rowTone(0.1, 0.2), 'row-lift');
 	});
 
 	test('uses dollar cost only when every profile provides it', () => {
