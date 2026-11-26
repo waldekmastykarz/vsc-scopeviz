@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-26
+
 ### Changed
 
 - At equal quality, a Lift/Drag row is green when it costs at least 10% less than the baseline and red when it costs at least 10% more. Smaller cost differences no longer mark a row as drag.
