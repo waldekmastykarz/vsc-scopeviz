@@ -191,7 +191,7 @@
 
     let h = '<section id="section-lift" class="section" aria-labelledby="lift-title">';
     h += '<div class="section-head"><span class="label">Does it help?</span><h2 id="lift-title" class="hang">Lift or drag</h2>';
-    h += '<p class="note measure">Each bar spans the scores of a profile\'s individual runs, from worst to best, and the solid line marks its average. The shaded band behind every row is the baseline\'s range. A profile whose runs all clear the band is a lift. A lower average than the baseline is a drag. Anything in between is unclear, unless it\'s at least 10% cheaper (lift) or 10% more expensive (drag). A lift that costs over 50% more is an expensive lift.</p>';
+    h += '<p class="note measure">Each bar spans the scores of a profile\'s individual runs, from worst to best, and the solid line marks its average. The shaded band behind every row is the baseline\'s range. Verdicts compare the averages: a higher average is a lift, or an expensive lift when it costs at least 10% more. A lower average is a drag. At the same average, at least 10% cheaper is a lift and at least 10% more expensive is a drag.</p>';
     if (P.hasComputedScores) h += '<p class="note measure"><span class="marked">Note</span> Some profiles have no stored score. Their score is computed from gates and criteria and marked with *.' + (isCost ? '' : ' Cost is shown as tokens because not every profile has a dollar cost.') + '</p>';
     if (baselineCount > 1) h += '<p class="note measure"><span class="marked">Note</span> This readout marks ' + baselineCount + ' baselines. Every profile is compared against the first: ' + esc(labelOf(baseline.id)) + '. Changes shown here can differ from the narrative, which compares against several baselines.</p>';
     h += '</div>';
@@ -212,7 +212,7 @@
       const costSub = baseRow || s.costDelta == null ? '' : '<small>' + signedCost(s.costDelta) + (s.costChange != null ? ' · ' + signedPct(s.costChange) : '') + '</small>';
       const scoreText = s.scoreComputed && s.score != null ? '<span title="Computed from gates and criteria; this readout doesn\'t store a score for this profile">' + pct(s.score) + '*</span>' : pct(s.score);
       const verdictLabel = v.kind === 'expensive' ? '<span class="marked">' + v.label + '</span>'
-        : v.kind === 'best' ? '<span class="marked best" title="The lift with the highest score, then the lowest cost">' + v.label + '</span>' : v.label;
+        : v.kind === 'best' ? '<span class="marked best" title="The top-scoring profile, and it doesn\'t cost more than the baseline">' + v.label + '</span>' : v.label;
       const name = esc(labelOf(p.id));
 
       h += '<div class="crow v-' + v.kind + '" role="button" tabindex="0" aria-expanded="false" aria-controls="detail-' + esc(p.id) + '" data-pid="' + esc(p.id) + '">';

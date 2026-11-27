@@ -13,7 +13,7 @@
 
 - Every profile is compared against one baseline: the first profile the readout marks as baseline. Readouts that mark several show a note.
 - Profiles are listed baseline first, then alphabetically by name.
-- Verdicts: Lift when every run scores at or above the baseline's best run; Drag when the average is below the baseline's; otherwise Unclear, unless the cost changes by at least 10%. Expensive lift marks a lift that costs over 50% more, and Best lift marks the lift with the highest score, then the lowest cost.
+- Verdicts compare the profile's average score and cost with the baseline's: a higher average is Lift, or Expensive lift when it costs at least 10% more; a lower average is Drag; at the same average, at least 10% cheaper is Lift and at least 10% more expensive is Drag. Best lift marks the top-scoring profile when it's a plain Lift; when the top scorer costs more, no profile gets it.
 - The readout schema in `spec/` requires exactly one baseline profile; every other profile is compared against it.
 - Synced the reference readout schema in `spec/` with Scope's current readout format: ATIF step citations (`stepId`, `subagentTrajectoryId`), `N/A` gate pass rates, `metadata.costSource`, `metadata.ownedAssets`, and root-cause `wastedSteps`. Readouts that use the older `turnNumber` field still open.
 

@@ -73,17 +73,16 @@ suite('Extension Test Suite', () => {
 		const baseline: Measure = { score: 0.47, min: 0.41, max: 0.59, cost: 0.49 };
 		const verdict = (profile: Measure) => classifyVerdict(profile, baseline);
 
-		// Every run at or above the baseline's best run is a lift, even when the ranges touch.
-		assert.strictEqual(verdict({ score: 0.94, min: 0.59, max: 1, cost: 0.4 }).kind, 'lift');
-		assert.deepStrictEqual(verdict({ score: 0.94, min: 0.88, max: 1, cost: 1.24 }), { kind: 'expensive', label: 'Expensive lift', note: 'cost +153%' });
-		// A lower average is drag, even when the runs overlap the baseline.
-		assert.deepStrictEqual(verdict({ score: 0.32, min: 0.24, max: 0.47, cost: 0.009 }), { kind: 'drag', label: 'Drag', note: 'average below the baseline' });
-		assert.deepStrictEqual(verdict({ score: 0.27, min: 0.24, max: 0.41, cost: 0.03 }), { kind: 'drag', label: 'Drag', note: '' });
-		// Overlapping runs with a higher average: cost decides when it changes by at least 10%.
-		assert.strictEqual(verdict({ score: 0.59, min: 0.47, max: 0.71, cost: 0.33 }).note, 'score unclear, cost \u221233%');
-		assert.strictEqual(verdict({ score: 0.59, min: 0.47, max: 0.71, cost: 0.5 }).kind, 'unclear');
-		assert.strictEqual(verdict({ score: 0.47, min: 0.41, max: 0.59, cost: 0.6 }).kind, 'drag');
-		assert.strictEqual(verdict({ score: 0.47, min: 0.41, max: 0.59, cost: 0.5 }).note, 'same score as the baseline');
+		// A higher average is a lift, or an expensive lift from +10% cost, even when the runs overlap the baseline.
+		assert.strictEqual(verdict({ score: 0.48, min: 0.4, max: 0.6, cost: 0.53 }).kind, 'lift');
+		assert.deepStrictEqual(verdict({ score: 0.48, min: 0.4, max: 0.6, cost: 0.62 }), { kind: 'expensive', label: 'Expensive lift', note: 'cost +27%' });
+		assert.strictEqual(verdict({ score: 0.9, min: 0.9, max: 0.9, cost: 0.1 }).kind, 'lift');
+		// A lower average is drag, even when it's cheaper.
+		assert.deepStrictEqual(verdict({ score: 0.46, min: 0.24, max: 0.59, cost: 0.009 }), { kind: 'drag', label: 'Drag', note: '' });
+		// The same average: a cost change of at least 10% decides.
+		assert.deepStrictEqual(verdict({ score: 0.47, min: 0.3, max: 0.7, cost: 0.33 }), { kind: 'lift', label: 'Lift', note: 'same score, cost \u221233%' });
+		assert.deepStrictEqual(verdict({ score: 0.47, min: 0.3, max: 0.7, cost: 0.6 }), { kind: 'drag', label: 'Drag', note: 'same score, cost +22%' });
+		assert.deepStrictEqual(verdict({ score: 0.47, min: 0.3, max: 0.7, cost: 0.5 }), { kind: 'unclear', label: 'Unclear', note: 'same score and cost' });
 		assert.strictEqual(classifyVerdict({ score: 0.5, min: null, max: null, cost: null }, null).kind, 'none');
 	});
 
@@ -107,11 +106,11 @@ suite('Extension Test Suite', () => {
 		assert.strictEqual(presentation.profiles[2].scoreDelta, 0.4);
 	});
 
-	test('marks the highest-scoring, then cheapest, lift as the best lift', () => {
+	test('marks the top-scoring, then cheapest, lift as the best lift', () => {
 		const readout = createReadout([
 			{ profileId: 'baseline', select: { passed: 5, total: 5 }, score: 0.5, tokens: 10, avgCostUsd: 0.1 },
-			{ profileId: 'candidate', select: { passed: 5, total: 5 }, score: 1, tokens: 20, avgCostUsd: 0.12 },
-			{ profileId: 'cheaper', select: { passed: 5, total: 5 }, score: 1, tokens: 20, avgCostUsd: 0.11 },
+			{ profileId: 'candidate', select: { passed: 5, total: 5 }, score: 1, tokens: 20, avgCostUsd: 0.105 },
+			{ profileId: 'cheaper', select: { passed: 5, total: 5 }, score: 1, tokens: 20, avgCostUsd: 0.095 },
 			{ profileId: 'pricey', select: { passed: 5, total: 5 }, score: 1, tokens: 20, avgCostUsd: 0.2 }
 		]);
 		readout.metadata.profiles.push(
@@ -121,6 +120,18 @@ suite('Extension Test Suite', () => {
 
 		const kinds = Object.fromEntries(buildReadoutPresentation(readout).profiles.map(p => [p.id, p.verdict.kind]));
 		assert.deepStrictEqual(kinds, { baseline: 'baseline', candidate: 'lift', cheaper: 'best', pricey: 'expensive' });
+	});
+
+	test('gives no best lift when the top-scoring profile costs more', () => {
+		const readout = createReadout([
+			{ profileId: 'baseline', select: { passed: 5, total: 5 }, score: 0.95, tokens: 10, avgCostUsd: 0.73 },
+			{ profileId: 'candidate', select: { passed: 5, total: 5 }, score: 0.975, tokens: 20, avgCostUsd: 0.92 },
+			{ profileId: 'cheap', select: { passed: 5, total: 5 }, score: 0.969, tokens: 20, avgCostUsd: 0.78 }
+		]);
+		readout.metadata.profiles.push({ id: 'cheap', harness: 'Cheap harness', model: 'm' });
+
+		const kinds = Object.fromEntries(buildReadoutPresentation(readout).profiles.map(p => [p.id, p.verdict.kind]));
+		assert.deepStrictEqual(kinds, { baseline: 'baseline', candidate: 'expensive', cheap: 'lift' });
 	});
 
 	test('uses stored run scores and computes them for older readouts without counting prerequisites', () => {

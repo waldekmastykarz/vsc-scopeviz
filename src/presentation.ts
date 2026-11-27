@@ -124,9 +124,13 @@ const MINUS = '\u2212';
 const signedPct = (n: number) => (n > 0 ? '+' : n < 0 ? MINUS : '±') + Math.round(Math.abs(n) * 100) + '%';
 
 /**
- * Compares a profile with the baseline. A lower average is drag. A lift needs every run at or above the
- * baseline's best run. When the runs overlap and the average isn't lower, a cost change of at least 10% decides.
- * A lift that costs over 50% more is an expensive lift.
+ * Compares a profile's average score and cost with the baseline's. Cost counts as changed when it moves by at
+ * least 10%.
+ *
+ *              cheaper   about the same   pricier
+ *   higher     Lift      Lift             Expensive lift
+ *   same       Lift      Unclear          Drag
+ *   lower      Drag      Drag             Drag
  */
 export function classifyVerdict(profile: Measure, baseline: Measure | null): Verdict {
   if (!baseline || profile.score === null || baseline.score === null) {
@@ -135,28 +139,25 @@ export function classifyVerdict(profile: Measure, baseline: Measure | null): Ver
   const costChange = baseline.cost !== null && baseline.cost > 0 && profile.cost !== null
     ? (profile.cost - baseline.cost) / baseline.cost
     : null;
-  const clearOfBaseline = profile.min !== null && baseline.max !== null ? profile.min >= baseline.max : true;
-  const overlaps = profile.max !== null && baseline.min !== null && profile.max > baseline.min;
+  const cheaper = costChange !== null && costChange <= -0.1;
+  const pricier = costChange !== null && costChange >= 0.1;
+  const costNote = costChange === null ? '' : 'cost ' + signedPct(costChange);
 
   if (profile.score < baseline.score) {
-    return { kind: 'drag', label: 'Drag', note: overlaps ? 'average below the baseline' : '' };
+    return { kind: 'drag', label: 'Drag', note: '' };
   }
-  if (profile.score > baseline.score && clearOfBaseline) {
-    return costChange !== null && costChange > 0.5
-      ? { kind: 'expensive', label: 'Expensive lift', note: 'cost ' + signedPct(costChange) }
+  if (profile.score > baseline.score) {
+    return pricier
+      ? { kind: 'expensive', label: 'Expensive lift', note: costNote }
       : { kind: 'lift', label: 'Lift', note: '' };
   }
-  if (costChange !== null && costChange <= -0.1) {
-    return { kind: 'lift', label: 'Lift', note: 'score unclear, cost ' + signedPct(costChange) };
+  if (cheaper) {
+    return { kind: 'lift', label: 'Lift', note: 'same score, ' + costNote };
   }
-  if (costChange !== null && costChange >= 0.1 && profile.score === baseline.score) {
-    return { kind: 'drag', label: 'Drag', note: 'score unclear, cost ' + signedPct(costChange) };
+  if (pricier) {
+    return { kind: 'drag', label: 'Drag', note: 'same score, ' + costNote };
   }
-  return {
-    kind: 'unclear',
-    label: 'Unclear',
-    note: profile.score === baseline.score ? 'same score as the baseline' : 'runs overlap the baseline'
-  };
+  return { kind: 'unclear', label: 'Unclear', note: 'same score and cost' };
 }
 
 export function profileName(profile: Profile, baseline: Profile | undefined): string {
@@ -254,10 +255,11 @@ export function buildReadoutPresentation(readout: Readout): ReadoutPresentation 
     }
   });
 
-  // Best lift: among Lift profiles, the highest score, then the lowest cost.
+  // Best lift: the top-scoring profile, only when it's a plain lift. Among tied top scores, the cheapest lift.
+  const topScore = Math.max(...views.filter(view => !view.isBaseline && view.score !== null).map(view => view.score as number));
   const best = views
-    .filter(view => view.verdict.kind === 'lift')
-    .sort((a, b) => ((b.score ?? 0) - (a.score ?? 0)) || ((a.cost ?? Infinity) - (b.cost ?? Infinity)))[0];
+    .filter(view => view.verdict.kind === 'lift' && view.score !== null && Math.abs(view.score - topScore) < 1e-9)
+    .sort((a, b) => (a.cost ?? Infinity) - (b.cost ?? Infinity))[0];
   if (best) {
     best.verdict = { ...best.verdict, kind: 'best', label: 'Best lift' };
   }
