@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Changed
+
+- Synced the reference readout schema in `spec/` with Scope's current readout format: ATIF step citations (`stepId`, `subagentTrajectoryId`), `N/A` gate pass rates, `metadata.costSource`, `metadata.ownedAssets`, and root-cause `wastedSteps`. Readouts that use the older `turnNumber` field still open.
+
 ## [0.6.2] - 2026-11-26
 
 ### Changed

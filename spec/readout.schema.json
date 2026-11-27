@@ -32,13 +32,13 @@
           "description": "ID of the run that produced this evidence (maps to runs[].id)."
         },
         "stepId": {
-          "type": "string",
-          "description": "Step ID within the trajectory (maps to trajectory steps[].stepId)."
-        },
-        "turnNumber": {
           "type": "integer",
-          "minimum": 0,
-          "description": "Agent turn number where the behavior or evidence was observed."
+          "minimum": 1,
+          "description": "ATIF step_id in the run's trajectory (runs[].trajectoryRef)."
+        },
+        "subagentTrajectoryId": {
+          "type": "string",
+          "description": "trajectory_id of the embedded subagent trajectory (subagent_trajectories[]) that contains stepId. Absent for a step of the root trajectory."
         },
         "criterionName": {
           "type": "string",
@@ -60,6 +60,14 @@
         "passed": { "type": "integer", "minimum": 0 },
         "total": { "type": "integer", "minimum": 1 }
       }
+    },
+
+    "gatePassRate": {
+      "description": "Gate pass rate, or N/A when the gate was inapplicable in every run.",
+      "oneOf": [
+        { "$ref": "#/$defs/passRate" },
+        { "const": "N/A" }
+      ]
     },
 
     "profile": {
@@ -107,6 +115,16 @@
           "type": "array",
           "description": "Evaluation criteria definitions (rubric) used by the LLM judge. Copied from run.criteria[].",
           "items": { "$ref": "#/$defs/criterionDefinition" }
+        },
+        "costSource": {
+          "type": "string",
+          "enum": ["billed", "list", "mixed"],
+          "description": "Where costs come from: what Copilot billed for each request, including discounts (billed); list prices from the pricing policy (list); or both (mixed)."
+        },
+        "ownedAssets": {
+          "type": "array",
+          "description": "Assets the experiment owner can change: skill paths, mcp:<server> names, and documentation URL prefixes. Fix actions target only these assets; causes in other assets are reported as constraints.",
+          "items": { "type": "string", "minLength": 1 }
         }
       }
     },
@@ -181,15 +199,15 @@
           "description": "Diagnostic split: pooled pass rate over gates only."
         },
         "deltaLift": {
-          "type": "number",
+          "type": ["number", "null"],
           "description": "Δ Lift = score(profile) - score(baseline), stored as a decimal (e.g. 0.096 = +9.6pp). Null for baseline."
         },
         "deltaDefects": {
-          "type": "number",
+          "type": ["number", "null"],
           "description": "Percentage change in avg defects vs. baseline as decimal (e.g., -0.89 = −89%). Code scenarios only."
         },
         "deltaTokens": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "description": "Absolute token difference vs. baseline (raw count)."
         },
         "codeGenerationRate": {
@@ -198,11 +216,11 @@
           "maximum": 1,
           "description": "Fraction of runs that produced code (0–1). Code scenarios only."
         },
-        "select": { "$ref": "#/$defs/passRate" },
-        "build": { "$ref": "#/$defs/passRate" },
-        "test": { "$ref": "#/$defs/passRate" },
-        "run": { "$ref": "#/$defs/passRate" },
-        "deploy": { "$ref": "#/$defs/passRate" },
+        "select": { "$ref": "#/$defs/gatePassRate" },
+        "build": { "$ref": "#/$defs/gatePassRate" },
+        "test": { "$ref": "#/$defs/gatePassRate" },
+        "run": { "$ref": "#/$defs/gatePassRate" },
+        "deploy": { "$ref": "#/$defs/gatePassRate" },
         "idiomatic": { "$ref": "#/$defs/passRate", "description": "Diagnostic only (NOT used for scoring)." },
         "dependencyCurrency": { "$ref": "#/$defs/passRate", "description": "Diagnostic only (NOT used for scoring)." },
         "configurationCorrectness": { "$ref": "#/$defs/passRate", "description": "Diagnostic only (NOT used for scoring)." },
@@ -215,13 +233,13 @@
           "description": "Average token count per run (raw). Diagnostic; the headline cost figure is avgCostUsd."
         },
         "avgCostUsd": {
-          "type": "number",
+          "type": ["number", "null"],
           "minimum": 0,
-          "description": "Average cost per run in USD, priced from per-turn token usage at the model's GitHub Copilot rates. Headline cost figure."
+          "description": "Average cost per run in USD, priced from per-turn token usage at the model's GitHub Copilot rates. Headline cost figure. Null when the pricing policy has no rates for the profile's model."
         },
         "deltaCostUsd": {
-          "type": "number",
-          "description": "avgCostUsd(profile) - avgCostUsd(baseline), in USD. Null for baseline."
+          "type": ["number", "null"],
+          "description": "avgCostUsd(profile) - avgCostUsd(baseline), in USD. Null for baseline or when either profile's cost is unavailable."
         },
         "requests": {
           "type": "number",
@@ -459,7 +477,7 @@
         },
         "trajectoryRef": {
           "type": "string",
-          "description": "ID or URI of the trajectory for drill-down into agent steps."
+          "description": "Relative path from readout.json to this run's ATIF trajectory.json sidecar, with subagent trajectories embedded."
         },
         "trajectoriesUrl": {
           "type": "string",
@@ -659,7 +677,16 @@
         },
         "trajectoryRef": {
           "type": "string",
-          "description": "Step ID or location in the trajectory where the relevant evidence appears."
+          "description": "First workspace file the judge cited, relative to the workspace root."
+        },
+        "stepId": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "ATIF step_id in the run's trajectory (runs[].trajectoryRef)."
+        },
+        "subagentTrajectoryId": {
+          "type": "string",
+          "description": "trajectory_id of the embedded subagent trajectory (subagent_trajectories[]) that contains stepId. Absent for a step of the root trajectory."
         }
       }
     },
@@ -690,10 +717,14 @@
           "type": "string",
           "description": "Quoted or summarized evidence from the trajectory."
         },
-        "turnNumber": {
+        "stepId": {
           "type": "integer",
-          "minimum": 0,
-          "description": "Trajectory step number where this behavior was observed."
+          "minimum": 1,
+          "description": "ATIF step_id in the run's trajectory (runs[].trajectoryRef)."
+        },
+        "subagentTrajectoryId": {
+          "type": "string",
+          "description": "trajectory_id of the embedded subagent trajectory (subagent_trajectories[]) that contains stepId. Absent for a step of the root trajectory."
         }
       }
     },
@@ -720,15 +751,28 @@
         "affectedDimensions": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Evaluation dimensions impacted (e.g., ['idiomaticUse'])."
+          "description": "Evaluation dimensions impacted (e.g., ['idiomaticUse']). 'efficiency' marks unnecessary work, such as reading wrong sources, guessing references, or probing for CLI options, even when criteria passed."
         },
         "behaviorChain": {
           "type": "string",
-          "description": "Narrative chain: root cause → behavior → evaluation failure."
+          "description": "Narrative chain: root cause → behavior → evaluation failure or wasted work."
         },
         "evidence": {
           "type": "string",
           "description": "Quoted or summarized evidence from the trajectory or run output."
+        },
+        "wastedSteps": {
+          "type": "array",
+          "description": "Every trajectory step of the unnecessary work, for an efficiency root cause.",
+          "items": {
+            "type": "object",
+            "required": ["stepId"],
+            "additionalProperties": false,
+            "properties": {
+              "stepId": { "type": "integer", "minimum": 1 },
+              "subagentTrajectoryId": { "type": "string" }
+            }
+          }
         }
       }
     },
