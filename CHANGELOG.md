@@ -2,8 +2,13 @@
 
 ## [Unreleased]
 
+### Added
+
+- The readout schema in `spec/` adds `runs[].results.score`, each run's score computed the same way as the profile Score, so viewers can show how consistently a profile scores across its runs.
+
 ### Changed
 
+- The readout schema in `spec/` requires exactly one baseline profile; every other profile is compared against it.
 - Synced the reference readout schema in `spec/` with Scope's current readout format: ATIF step citations (`stepId`, `subagentTrajectoryId`), `N/A` gate pass rates, `metadata.costSource`, `metadata.ownedAssets`, and root-cause `wastedSteps`. Readouts that use the older `turnNumber` field still open.
 
 ## [0.6.2] - 2026-11-26
