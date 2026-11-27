@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-27
+
 ### Added
 
 - Redesigned the preview in the [Developer Agent Experience](https://microsoft.github.io/agent-experience/) design language, with light and dark palettes that follow the VS Code theme and the bundled Atkinson Hyperlegible fonts (SIL OFL 1.1).
