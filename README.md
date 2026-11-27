@@ -12,12 +12,13 @@ Raw Scope readout JSON is painful to read. Scrolling through nested scorecard da
 
 ## Features
 
-- **One-click preview** — click the graph icon in the editor title bar on any readout JSON file
-- **Lift / Drag section** — profile comparison table showing Select, Score, Δ Lift, and cost per run ($/run)
-- **What to Change section** — prioritized action cards with root cause, affected runs, and fix targets
-- **Supporting Evidence section** — expandable scores, behaviors, and individual run details
-- **Live reload** — preview updates automatically as you edit the source file
-- **Native VS Code look** — uses your theme colors, codicons, and standard UI patterns
+- **One-click preview**: click the graph icon in the editor title bar on any readout JSON file
+- **Lift or drag at a glance**: every profile is compared against the readout's baseline on one 0–100% scale. Bars span the scores of a profile's runs from worst to best, a solid line marks the average, and dots show how many runs landed on each score. The baseline's range is drawn behind every row.
+- **Plain verdicts**: Lift, Drag, Unclear, Expensive lift (lift that costs over 50% more) and Best lift, with the score and cost change per run next to each
+- **What to change**: prioritized Fix, Create and Constraint cards with root cause, affected runs and evidence
+- **Supporting evidence**: a criteria-by-profile table, behaviors per profile, and every run with its criteria results and a link to its trajectory
+- **Live reload**: the preview updates as you edit the source file
+- **DevAX design language**: matches [Developer Agent Experience](https://microsoft.github.io/agent-experience/), in light or dark to follow your VS Code theme
 
 ## Getting Started
 

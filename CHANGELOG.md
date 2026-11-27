@@ -2,8 +2,19 @@
 
 ## [Unreleased]
 
+### Added
+
+- Redesigned the preview in the [Developer Agent Experience](https://microsoft.github.io/agent-experience/) design language, with light and dark palettes that follow the VS Code theme and the bundled Atkinson Hyperlegible fonts (SIL OFL 1.1).
+- Lift or drag chart: every profile on one 0–100% scale, with the range of its run scores, its average, and a dot per score showing how many runs landed there, drawn over the baseline's range.
+- Criteria-by-profile table in Supporting Evidence that highlights criteria below the baseline.
+- The readout schema in `spec/` adds `runs[].results.score`, each run's score computed the same way as the profile Score, so viewers can show how consistently a profile scores across its runs.
+
 ### Changed
 
+- Every profile is compared against one baseline: the first profile the readout marks as baseline. Readouts that mark several show a note.
+- Profiles are listed baseline first, then alphabetically by name.
+- Verdicts: Lift when every run scores at or above the baseline's best run; Drag when the average is below the baseline's; otherwise Unclear, unless the cost changes by at least 10%. Expensive lift marks a lift that costs over 50% more, and Best lift marks the lift with the highest score, then the lowest cost.
+- The readout schema in `spec/` requires exactly one baseline profile; every other profile is compared against it.
 - Synced the reference readout schema in `spec/` with Scope's current readout format: ATIF step citations (`stepId`, `subagentTrajectoryId`), `N/A` gate pass rates, `metadata.costSource`, `metadata.ownedAssets`, and root-cause `wastedSteps`. Readouts that use the older `turnNumber` field still open.
 
 ## [0.6.2] - 2026-11-26

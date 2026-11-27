@@ -22,14 +22,17 @@ export class ScopevizEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): void {
-    webviewPanel.webview.options = { enableScripts: true };
+    webviewPanel.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'media')]
+    };
     webviewPanel.iconPath = new vscode.ThemeIcon('graph-line');
 
     const update = () => {
       const text = document.getText();
       const { readout, errors } = tryParse(text);
       const nonce = getNonce();
-      webviewPanel.webview.html = getHtml(webviewPanel.webview, nonce, readout, errors);
+      webviewPanel.webview.html = getHtml(webviewPanel.webview, this.extensionUri, nonce, readout, errors);
     };
 
     const changeSubscription = vscode.workspace.onDidChangeTextDocument((e) => {

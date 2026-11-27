@@ -1,31 +1,41 @@
 import * as vscode from 'vscode';
 import { Readout } from '../types';
 import { buildReadoutPresentation } from '../presentation';
-import { getStyles } from './styles';
-import { getScript } from './script';
 
 export function getHtml(
   webview: vscode.Webview,
+  extensionUri: vscode.Uri,
   nonce: string,
   readout?: Readout,
   errors?: string[]
 ): string {
-  const csp = `default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';`;
+  const media = vscode.Uri.joinPath(extensionUri, 'media');
+  const styleUri = webview.asWebviewUri(vscode.Uri.joinPath(media, 'readout.css'));
+  const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(media, 'readout.js'));
+  const csp = [
+    `default-src 'none'`,
+    `style-src ${webview.cspSource}`,
+    `font-src ${webview.cspSource}`,
+    `script-src 'nonce-${nonce}'`
+  ].join('; ');
+  const head = (title: string) => `<meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="${csp}">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="${styleUri}">
+  <title>${escapeHtml(title)}</title>`;
 
   if (errors && errors.length > 0) {
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="${csp}">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style nonce="${nonce}">${getStyles()}</style>
-  <title>Scopeviz</title>
+  ${head('Scope readout')}
 </head>
 <body>
-  <div class="error-container">
-    <h2>Not a valid Scope readout</h2>
-    <ul>${errors.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>
+  <div class="frame">
+    <section class="hero">
+      <h1 class="hang">Not a valid Scope readout</h1>
+      <ul class="measure">${errors.map((e) => `<li>${escapeHtml(e)}</li>`).join('')}</ul>
+    </section>
   </div>
 </body>
 </html>`;
@@ -35,70 +45,28 @@ export function getHtml(
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="${csp}">
-  <title>Scopeviz</title>
+  ${head('Scope readout')}
 </head>
-<body><p>No data.</p></body>
+<body><div class="frame"><p class="empty">No data.</p></div></body>
 </html>`;
   }
 
-  const dataJson = JSON.stringify(readout);
-  const presentation = buildReadoutPresentation(readout);
-  const presentationJson = JSON.stringify(presentation);
+  // JSON in a non-executable script block; escaping '<' keeps readout text from closing the element.
+  const data = JSON.stringify({ readout, presentation: buildReadoutPresentation(readout) }).replace(/</g, '\\u003c');
 
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta http-equiv="Content-Security-Policy" content="${csp}">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style nonce="${nonce}">${getStyles()}</style>
-  <title>${escapeHtml(readout.metadata.title)} — Readout</title>
+  ${head(`${readout.metadata.title} · Scope readout`)}
 </head>
 <body>
-  <header class="readout-header">
-    <h1>${escapeHtml(readout.metadata.title)}</h1>
-    <p class="subtitle">${escapeHtml(presentation.subtitle)}</p>
-    <details class="instruction-block">
-      <summary>Instruction</summary>
-      <pre class="instruction-text">${escapeHtml(readout.metadata.instruction)}</pre>
-    </details>
-  </header>
-
-  <section id="section-lift" class="section">
-    <h2>Lift / Drag</h2>
-    <div id="lift-table"></div>
-  </section>
-
-  <section id="section-change" class="section">
-    <h2>What to Change</h2>
-    <div id="action-list"></div>
-  </section>
-
-  <hr class="divider">
-
-  <section id="section-evidence" class="section">
-    <h2>Supporting Evidence</h2>
-    <details id="evidence-scores">
-      <summary>Scores (gates, dimensions, criteria)</summary>
-      <div id="scores-content"></div>
-    </details>
-    <details id="evidence-behaviors">
-      <summary>Behaviors (what the agent did)</summary>
-      <div id="behaviors-content"></div>
-    </details>
-    <details id="evidence-runs">
-      <summary>Runs</summary>
-      <div id="runs-content"></div>
-    </details>
-  </section>
-
-  <script nonce="${nonce}">
-    const readout = ${dataJson};
-    const presentation = ${presentationJson};
-    ${getScript()}
-  </script>
+  <div class="frame">
+    <main id="app"></main>
+  </div>
+  <div class="kbd-hint" aria-hidden="true"><kbd>1</kbd> Lift/drag <kbd>2</kbd> Changes <kbd>3</kbd> Evidence</div>
+  <div class="toast" role="status" aria-live="polite"></div>
+  <script type="application/json" id="readout-data">${data}</script>
+  <script nonce="${nonce}" src="${scriptUri}"></script>
 </body>
 </html>`;
 }

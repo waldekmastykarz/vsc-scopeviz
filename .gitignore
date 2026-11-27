@@ -5,3 +5,4 @@ node_modules
 .benchmarks
 PLAN.md
 .DS_Store
+.tmp/

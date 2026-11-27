@@ -198,6 +198,8 @@ export interface Run {
 }
 
 export interface RunResults {
+  /** Score for this run (0–1): pass rate over its measured gates and non-prerequisite criteria. */
+  score?: number;
   durations?: { codingSeconds?: number; evaluationSeconds?: number };
   tokens?: number;
   requests?: number;

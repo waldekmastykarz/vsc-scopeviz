@@ -86,7 +86,7 @@
           "description": "Extension points loaded. Empty or omitted for bare baseline."
         },
         "os": { "type": "string", "examples": ["Windows", "macOS"] },
-        "isBaseline": { "type": "boolean", "description": "True for the bare baseline profile used as delta reference." },
+        "isBaseline": { "type": "boolean", "description": "True for the one profile every other profile is compared against. Exactly one profile in a readout is the baseline; the experiment owner picks it, typically the setup most developers use or the one they recommend." },
         "additionalInstructions": { "type": "string", "description": "Extra instructions given to the agent for this profile." }
       }
     },
@@ -109,7 +109,11 @@
         "profiles": {
           "type": "array",
           "items": { "$ref": "#/$defs/profile" },
-          "minItems": 1
+          "minItems": 1,
+          "contains": { "required": ["isBaseline"], "properties": { "isBaseline": { "const": true } } },
+          "minContains": 1,
+          "maxContains": 1,
+          "description": "Profiles in this readout. Exactly one has isBaseline: true."
         },
         "criteria": {
           "type": "array",
@@ -516,6 +520,12 @@
       "required": ["gates", "criteriaResults"],
       "additionalProperties": false,
       "properties": {
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Score for this run (0-1), computed like profileResults[].score but over this run's checks only: (gate passes + quality-criteria passes) / (gate checks + quality-criteria checks). A gate counts when its status is pass or fail; na and skipped gates are left out. Quality criteria are those whose metadata.criteria[].classification is not 'prerequisite'; skipped criteria are left out. Consumers use it to show how consistently a profile scores across its runs."
+        },
         "durations": {
           "type": "object",
           "additionalProperties": false,
